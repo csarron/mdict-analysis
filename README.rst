@@ -8,11 +8,11 @@ But this has not hindered its popularity, and many dictionaries have been create
 
 MDX File Format
 ===============
-.. image:: mdx.svg
+.. image:: MDX.svg
 
 MDD File Format
 ===============
-.. image:: mdd.svg
+.. image:: MDD.svg
 
 Example Program
 ===============
