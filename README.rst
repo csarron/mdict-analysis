@@ -16,7 +16,7 @@ MDD File Format
 
 Example Program
 ===============
-readmdx.py is an example implementation in Python. This program can read/extract mdx/mdd files.
+readmdict.py is an example implementation in Python. This program can read/extract mdx/mdd files.
 It can be used as a command line tool::
 
     $ python readmdict.py oald8.mdx
@@ -25,17 +25,25 @@ or as a moudle::
 
     In [1]: from readmdict import readmdx, readmdd
 
+Read MDX file and print the first entry::
+
     In [2]: glos = readmdx('/Users/wang/Downloads/oald8.mdx')
     
     In [3]: glos['dict'][0]
     Out[3]:
     ('A',
      '<span style=\'display:block;color:black;\'>.........')
+`glos` is a python dict having all info from MDX file. Its `dict` item is a list of 2-item tuples.
+Of each tuple, the first element is the entry text and the second is the explanation.
 
-    In [3]: data = readmdd('/Users/wang/Downloads/oald8.mdd')
+Read MDD file and print the first entry::
 
-    In [4]: data['data'][0]
-    Out[4]: 
+    In [4]: data = readmdd('/Users/wang/Downloads/oald8.mdd')
+
+    In [5]: data['data'][0]
+    Out[5]: 
     (u'\\pic\\accordion_concertina.jpg',
     '\xff\xd8\xff\xe0\x00\x10JFIF...........')
 
+`data` is a python dict having all info from a MDD file. Its `data` item is a list of 2-item tuples. 
+Of each tuple, the first element is the file name and the second element is the corresponding file content.
