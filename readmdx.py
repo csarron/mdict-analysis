@@ -36,7 +36,7 @@ def readmdd(fname):
     # 8 bytes long long : number of bytes of key block
     key_block_size = unpack('>Q', f.read(8))[0]
 
-    # 4 bytes unknown
+    # 4 bytes : unknown
     unknown = f.read(4)
     glos['flag2'] = unknown.encode('hex')
 
@@ -214,18 +214,58 @@ def readmdx(fname):
     for current_record_block_size, unknown_size in record_block_info_list:
         current_record_block = f.read(current_record_block_size)
         current_record_block_text = zlib.decompress(current_record_block[8:])
-        assert(len(current_record_block_text) == decompressed_block_size)
+        #assert(len(current_record_block_text) == decompressed_block_size)
         record_block += current_record_block_text.split('\x00')[:-1]
     glos['record_block'] = record_block
 
-
+    # merge key_block and record_block
+    dict = []
+    for key, record in zip(key_list, record_block):
+        dict += [(key[1], record)]
+    glos['dict'] = dict
     f.close()
 
     return glos
 if __name__ == '__main__':
-    import sys
-    glos = readmdx(sys.argv[1])
-    print glos['num1']
-    print glos['num_entries']
-    print len(glos['record_block'])
-    print len(glos['key_block'])
+    import os
+    import os.path
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-x', '--extract', action="store_true",
+                    help='extract mdx to source format and extract files from mdd')
+    parser.add_argument('-d', '--datafolder', default="data",
+                    help='folder to extract data files from mdd')
+    parser.add_argument("filename", help="mdx file name")
+    args = parser.parse_args()
+
+    # read mdx file
+    glos = readmdx(args.filename)
+
+    # find companion mdd file
+    base,ext = os.path.splitext(args.filename)
+    mdd_filename = ''.join([base, os.path.extsep, 'mdd'])
+    if (os.path.exists(mdd_filename)):
+        data = readmdd(mdd_filename)
+    else:
+        data = None
+
+    if args:
+        # write out glos
+        output_fname = ''.join([base, os.path.extsep, 'txt'])
+        f = open(output_fname, 'w')
+        for entry in glos['dict']:
+            f.write(entry[0])
+            f.write(entry[1])
+            f.write('</>\r\n')
+        f.close()
+        # write out optional data files
+        if data:
+            if not os.path.exists(args.datafolder):
+                os.makedirs(args.datafolder)
+            for entry in data['data']:
+                fname = ''.join([args.datafolder, entry[0].replace('\\', os.path.sep)]);
+                if not os.path.exists(os.path.dirname(fname)):
+                    os.makedirs(os.path.dirname(fname))
+                f = open(fname, 'w')
+                f.write(entry[1])
+                f.close()
