@@ -18,8 +18,11 @@ Example Program
 ===============
 readmdx.py is an example implementation in Python. This program can read/extract mdx/mdd files.
 It can be used as a command line tool::
+
     $ python readmdict.py oald8.mdx
+
 or as a moudle::
+
     In [1]: from readmdict import readmdx, readmdd
 
     In [2]: glos = readmdx('/Users/wang/Downloads/oald8.mdx')
