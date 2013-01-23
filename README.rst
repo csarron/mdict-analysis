@@ -55,5 +55,5 @@ Read MDD file and print the first entry::
     (u'\\pic\\accordion_concertina.jpg',
     '\xff\xd8\xff\xe0\x00\x10JFIF...........')
 
-``data`` is a python dict having all info from a MDD file. ``glos['data']`` item is a list of 2-item tuples. 
+``data`` is a python dict having all info from a MDD file. ``data['data']`` item is a list of 2-item tuples. 
 Of each tuple, the first element is the file name and the second element is the corresponding file content.
