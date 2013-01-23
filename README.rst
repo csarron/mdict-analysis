@@ -24,9 +24,12 @@ MDD File Format
 Example Program
 ===============
 readmdict.py is an example implementation in Python. This program can read/extract mdx/mdd files.
-It can be used as a command line tool::
 
-    $ python readmdict.py oald8.mdx
+It can be used as a command line tool. Suppose one has oald8.mdx and oald8.mdd::
+
+    $ python readmdict.py -x oald8.mdx
+
+This will creates *oald8.txt* dictionary file and creates a folder *data* for images, pronunciation audio files.
 
 Or as a module::
 
