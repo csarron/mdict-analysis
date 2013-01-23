@@ -1,5 +1,6 @@
 from struct import unpack
 import zlib
+from xml.etree.ElementTree import XMLParser
 
 def readmdd(fname):
     glos = {}
@@ -12,8 +13,11 @@ def readmdd(fname):
     # 4 bytes integer : number of bytes of header text
     header_text_size = unpack('>I', f.read(4))[0]
     # text in utf-16
-    header_text = f.read(header_text_size)
-    glos['header'] = header_text.decode('utf-16')
+    header_text = f.read(header_text_size)[:-2]
+    parser = XMLParser(encoding='utf-16')
+    parser.feed(header_text)
+    header_tag = parser.close()
+    glos['header'] = header_tag.attrib
 
     # 4 bytes unknown
     glos['flag1'] = f.read(4).encode('hex')
@@ -125,8 +129,11 @@ def readmdx(fname):
     # integer : number of bytes of header text
     header_text_size = unpack('>I', f.read(4))[0]
     # text in utf-16 encoding
-    header_text = f.read(header_text_size)
-    glos['header'] = header_text.decode('utf-16')
+    header_text = f.read(header_text_size)[:-2]
+    parser = XMLParser(encoding='utf-16')
+    parser.feed(header_text)
+    header_tag = parser.close()
+    glos['header'] = header_tag.attrib
 
     # 4 bytes unknown
     glos['flag1'] = f.read(4).encode('hex')
@@ -240,16 +247,22 @@ if __name__ == '__main__':
 
     # read mdx file
     glos = readmdx(args.filename)
+    print '========', args.filename, '========'
+    for key,value in glos['header'].items():
+        print ' ', key, ':', value
 
     # find companion mdd file
     base,ext = os.path.splitext(args.filename)
     mdd_filename = ''.join([base, os.path.extsep, 'mdd'])
     if (os.path.exists(mdd_filename)):
         data = readmdd(mdd_filename)
+        print '========', args.filename, '========'
+        for key,value in glos['header'].items():
+            print ' ', key, ':', value
     else:
         data = None
 
-    if args:
+    if args.extract:
         # write out glos
         output_fname = ''.join([base, os.path.extsep, 'txt'])
         f = open(output_fname, 'w')
