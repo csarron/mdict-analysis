@@ -248,6 +248,7 @@ if __name__ == '__main__':
     # read mdx file
     glos = readmdx(args.filename)
     print '========', args.filename, '========'
+    print '  Number of Entries :', glos['num_entries']
     for key,value in glos['header'].items():
         print ' ', key, ':', value
 
@@ -257,6 +258,7 @@ if __name__ == '__main__':
     if (os.path.exists(mdd_filename)):
         data = readmdd(mdd_filename)
         print '========', args.filename, '========'
+        print ' Number of Entries :', data['num_entries']
         for key,value in glos['header'].items():
             print ' ', key, ':', value
     else:
