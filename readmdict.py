@@ -245,34 +245,40 @@ if __name__ == '__main__':
     parser.add_argument("filename", help="mdx file name")
     args = parser.parse_args()
 
+    base,ext = os.path.splitext(args.filename)
+
     # read mdx file
-    glos = readmdx(args.filename)
-    print '========', args.filename, '========'
-    print '  Number of Entries :', glos['num_entries']
-    for key,value in glos['header'].items():
-        print ' ', key, ':', value
+    if ext == os.path.extsep + 'mdx':
+        glos = readmdx(args.filename)
+        print '========', args.filename, '========'
+        print '  Number of Entries :', glos['num_entries']
+        for key,value in glos['header'].items():
+            print ' ', key.encode('utf-8'), ':', value.encode('utf-8')
+    else:
+        glos = None
 
     # find companion mdd file
-    base,ext = os.path.splitext(args.filename)
     mdd_filename = ''.join([base, os.path.extsep, 'mdd'])
     if (os.path.exists(mdd_filename)):
         data = readmdd(mdd_filename)
         print '========', args.filename, '========'
         print ' Number of Entries :', data['num_entries']
-        for key,value in glos['header'].items():
-            print ' ', key, ':', value
+        for key,value in data['header'].items():
+            print ' ', key.encode('utf-8'), ':', value.encode('utf-8')
     else:
         data = None
 
     if args.extract:
         # write out glos
-        output_fname = ''.join([base, os.path.extsep, 'txt'])
-        f = open(output_fname, 'w')
-        for entry in glos['dict']:
-            f.write(entry[0])
-            f.write(entry[1])
-            f.write('</>\r\n')
-        f.close()
+        if glos:
+            output_fname = ''.join([base, os.path.extsep, 'txt'])
+            f = open(output_fname, 'wb')
+            for entry in glos['dict']:
+                f.write(entry[0])
+                f.write('\r\n')
+                f.write(entry[1])
+                f.write('</>\r\n')
+            f.close()
         # write out optional data files
         if data:
             if not os.path.exists(args.datafolder):
@@ -281,6 +287,6 @@ if __name__ == '__main__':
                 fname = ''.join([args.datafolder, entry[0].replace('\\', os.path.sep)]);
                 if not os.path.exists(os.path.dirname(fname)):
                     os.makedirs(os.path.dirname(fname))
-                f = open(fname, 'w')
+                f = open(fname, 'wb')
                 f.write(entry[1])
                 f.close()
