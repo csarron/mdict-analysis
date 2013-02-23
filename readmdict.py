@@ -1,6 +1,87 @@
-from struct import unpack
+from struct import pack, unpack
 import zlib
+import lzo
 from xml.etree.ElementTree import XMLParser
+
+def _split_key_block(key_block, number_format, number_width):
+    key_list = []
+    key_start_index = 0
+    while key_start_index < len(key_block):
+        # the corresponding record's offset in record block
+        key_id = unpack(number_format, key_block[key_start_index:key_start_index+number_width])[0]
+        # key text ends with '\x00'
+        key_end_index = key_start_index + number_width
+        for a in key_block[key_start_index+number_width:]:
+            key_end_index += 1
+            if a == '\x00':
+                break
+        key_text = key_block[key_start_index+number_width:key_end_index-1]
+        key_start_index = key_end_index
+        key_list += [(key_id, key_text)]
+    return key_list
+
+def _decode_key_block_info_v1(key_block_info):
+    key_block_info_size = len(key_block_info)
+    # decode
+    key_block_info_list = []
+    i = 0
+    while i < key_block_info_size:
+        # 4 bytes unknow
+        unknown = unpack('>I', key_block_info[i:i+4])[0]
+        i += 4
+        # 1 byte
+        text_head_size = unpack('>B', key_block_info[i:i+1])[0]
+        i += 1
+        # text head
+        i += text_head_size
+        # 1 byte
+        text_tail_size = unpack('>B', key_block_info[i:i+1])[0]
+        i += 1
+        # text tail
+        i += text_tail_size
+        # 4 bytes of key block compressed size
+        key_block_compressed_size = unpack('>I', key_block_info[i:i+4])[0]
+        i += 4
+        # 4 bytes of key block decompressed size
+        key_block_decompressed_size = unpack('>I', key_block_info[i:i+4])[0]
+        i += 4
+        key_block_info_list += [(key_block_compressed_size, key_block_decompressed_size)]
+    return key_block_info_list
+
+def _decode_key_block_info_v2(key_block_info_compressed):
+    # \x02\x00\x00\x00
+    assert(key_block_info_compressed[:4] == '\x02\x00\x00\x00')
+    # 4 bytes as a checksum
+    assert(key_block_info_compressed[4:8] == key_block_info_compressed[-4:])
+    # decompress
+    key_block_info = zlib.decompress(key_block_info_compressed[8:])
+    key_block_info_size = len(key_block_info)
+    # decode
+    key_block_info_list = []
+    i = 0
+    while i < key_block_info_size:
+        # 8 bytes unknow
+        unknown = unpack('>Q', key_block_info[i:i+8])[0]
+        i += 8
+        # 2 bytes
+        text_head_size = unpack('>H', key_block_info[i:i+2])[0]
+        i += 2
+        # text head
+        i += text_head_size + 1
+        # 2 bytes
+        text_tail_size = unpack('>H', key_block_info[i:i+2])[0]
+        i += 2
+        # text tail
+        i += text_tail_size + 1
+        # 8 bytes of key block compressed size
+        key_block_compressed_size = unpack('>Q', key_block_info[i:i+8])[0]
+        i += 8
+        # 4 bytes of key block decompressed size
+        key_block_decompressed_size = unpack('>Q', key_block_info[i:i+8])[0]
+        i += 8
+        key_block_info_list += [(key_block_compressed_size, key_block_decompressed_size)]
+    return key_block_info_list
+
 
 def readmdd(fname):
     glos = {}
@@ -135,6 +216,16 @@ def readmdx(fname):
     header_tag = parser.close()
     glos['header'] = header_tag.attrib
 
+    # before version 2.0, number is 4 bytes integer
+    # version 2.0 and above uses 8 bytes
+    version = float(header_tag.attrib['GeneratedByEngineVersion'])
+    if version < 2.0:
+        number_width = 4
+        number_format = '>I'
+    else:
+        number_width = 8
+        number_format = '>Q'
+
     # 4 bytes unknown
     glos['flag1'] = f.read(4).encode('hex')
 
@@ -142,87 +233,116 @@ def readmdx(fname):
     #      Key Block
     ################################################################################
 
-    # 8 bytes long long : number of key blocks
-    num_key_blocks = unpack('>Q', f.read(8))[0]
+    # number of key blocks
+    num_key_blocks = unpack(number_format, f.read(number_width))[0]
     glos['num_key_blocks'] =  num_key_blocks
-    # 8 bytes long long : number of entries
-    num_entries =  unpack('>Q', f.read(8))[0]
+    # number of entries
+    num_entries =  unpack(number_format, f.read(number_width))[0]
     glos['num_entries'] = num_entries
-    # 8 bytes long long : unkown
-    unknown = unpack('>Q', f.read(8))[0]
-    glos['num1'] = unknown
-    # 8 bytes long long : number of bytes of unknown block 1
-    unknown_block_1_size = unpack('>Q', f.read(8))[0]
-    # 8 bytes long long : number of bytes of key block
-    key_block_size = unpack('>Q', f.read(8))[0]
+    # unkown
+    if version >= 2.0:
+        unknown = unpack(number_format, f.read(number_width))[0]
+        glos['num1'] = unknown
+    # number of bytes of key block info
+    key_block_info_size = unpack(number_format, f.read(number_width))[0]
+    # number of bytes of key block
+    key_block_size = unpack(number_format, f.read(number_width))[0]
 
-    # 4 bytes unknown
-    unknown = f.read(4)
-    glos['flag2'] = unknown.encode('hex')
+    if version >= 2.0:
+        # 4 bytes unknown
+        unknown = f.read(4)
+        glos['flag2'] = unknown.encode('hex')
 
-    # read unknown block 1
-    unknown_block_1 = f.read(unknown_block_1_size)
-    glos['unknown_block_1'] = unknown_block_1
+
+    # read key block info, which indicates block's compressed and decompressed size
+    key_block_info = f.read(key_block_info_size)
+    if version < 2.0:
+        key_block_info_list = _decode_key_block_info_v1(key_block_info)
+    else:
+        key_block_info_list = _decode_key_block_info_v2(key_block_info)
+
     # read key block
     key_block_compressed = f.read(key_block_size)
 
     # extract key block
     key_list = []
 
-    # \x02\x00\x00\x00 leads each key block
-    key_block_list = key_block_compressed.split('\x02\x00\x00\x00')
-    for block in key_block_list[1:]:
-        # decompress key block
-        key_block = zlib.decompress(block[4:])
-        # extract one single key block
-        key_start_index = 0
-        while key_start_index < len(key_block):
-            # 8 bytes long long : the corresponding record's offset
-            # in record block
-            key_id = unpack('>Q', key_block[key_start_index:key_start_index+8])[0]
-            # key text ends with '\x00'
-            key_end_index = key_start_index + 8
-            for a in key_block[key_start_index+8:]:
-                key_end_index += 1
-                if a == '\x00':
-                    break
-            key_text = key_block[key_start_index+8:key_end_index-1]
-            key_start_index = key_end_index
-            key_list += [(key_id, key_text)]
-
+    i = 0
+    for compressed_size, decompressed_size in key_block_info_list:
+        start = i;
+        end = i + compressed_size
+        # 4 bytes : compression type
+        key_block_type = key_block_compressed[start:start+4]
+        if key_block_type == '\x00\x00\x00\x00':
+            # extract one single key block into a key list
+            key_list += _split_key_block(key_block_compressed[start+8:end], number_format, number_width)
+        elif key_block_type == '\x01\x00\x00\x00':
+            # 4 bytes as adler32 checksum
+            adler32 = unpack('>I', key_block_compressed[start+4:start+8])[0]
+            # decompress key block
+            header = '\xf0' + pack('>I', decompressed_size)
+            key_block = lzo.decompress(header + key_block_compressed[start+8:end])
+            assert(adler32 == lzo.adler32(key_block))
+            # extract one single key block into a key list
+            key_list += _split_key_block(key_block, number_format, number_width)
+        elif key_block_type == '\x02\x00\x00\x00':
+            # 4 bytes same as end of block
+            assert(key_block_compressed[start+4:start+8] == key_block_compressed[end-4:end])
+            # decompress key block
+            key_block = zlib.decompress(key_block_compressed[start+number_width:end])
+            # extract one single key block into a key list
+            key_list += _split_key_block(key_block, number_format, number_width)
+        i += compressed_size
     glos['key_block'] =  key_list
 
     ################################################################################
     #      Record Block
     ################################################################################
 
-    # 8 bytes long long : number of record blocks
-    num_record_blocks = unpack('>Q', f.read(8))[0]
+    # number of record blocks
+    num_record_blocks = unpack(number_format, f.read(number_width))[0]
     glos['num_record_blocks'] = num_record_blocks
-    # 8 bytes long long : number of entries
-    num_entries = unpack('>Q', f.read(8))[0]
+    # number of entries
+    num_entries = unpack(number_format, f.read(number_width))[0]
     assert(num_entries == glos['num_entries'])
-    # 8 bytes long long : number of bytes of record blocks info section
-    num_record_block_info_bytes = unpack('>Q', f.read(8))[0]
-    # 8 bytes long long : number of byets of actual record blocks
-    total_record_block_bytes = unpack('>Q', f.read(8))[0]
+    # number of bytes of record blocks info section
+    num_record_block_info_bytes = unpack(number_format, f.read(number_width))[0]
+    # number of byets of actual record blocks
+    total_record_block_bytes = unpack(number_format, f.read(number_width))[0]
 
     # record block info section
     record_block_info_list = []
     for i in range(num_record_blocks):
-        # 8 bytes long long : number of bytes of current record block
-        current_record_block_size = unpack('>Q', f.read(8))[0]
-        # 8 bytes long long : number of bytes if current record block decompressed
-        decompressed_block_size = unpack('>Q', f.read(8))[0]
+        # number of bytes of current record block
+        current_record_block_size = unpack(number_format, f.read(number_width))[0]
+        # number of bytes if current record block decompressed
+        decompressed_block_size = unpack(number_format, f.read(number_width))[0]
         record_block_info_list += [(current_record_block_size, decompressed_block_size)]
 
     # actual record block data
     record_block = []
-    for current_record_block_size, unknown_size in record_block_info_list:
+    for current_record_block_size, decompressed_size in record_block_info_list:
         current_record_block = f.read(current_record_block_size)
-        current_record_block_text = zlib.decompress(current_record_block[8:])
-        #assert(len(current_record_block_text) == decompressed_block_size)
-        record_block += current_record_block_text.split('\x00')[:-1]
+        # 4 bytes indicates block compression type
+        current_record_block_type = current_record_block[:4]
+        # no compression
+        if current_record_block_type == '\x00\x00\x00\x00':
+            record_block += current_record_block[8:].split('\x00')[:-1]
+        # lzo compression
+        elif current_record_block_type == '\x01\x00\x00\x00':
+            # 4 bytes adler32 checksum
+            # decompress
+            header = '\xf0' + pack('>I', decompressed_size)
+            current_record_block_text = lzo.decompress(header + current_record_block[8:])
+            record_block += current_record_block_text.split('\x00')[:-1]
+        # zlib compression
+        elif current_record_block_type == '\x02\x00\x00\x00':
+            # 4 bytes as checksum
+            assert(current_record_block[4:8] == current_record_block[-4:])
+            # compressed contents
+            current_record_block_text = zlib.decompress(current_record_block[8:])
+            assert(len(current_record_block_text) == decompressed_size)
+            record_block += current_record_block_text.split('\x00')[:-1]
     glos['record_block'] = record_block
 
     # merge key_block and record_block
