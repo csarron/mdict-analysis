@@ -1,3 +1,22 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+## readmdict.py
+## Octopus MDict Dictionary File (.mdx) and Resource File (.mdd) Analyser
+##
+## Copyright (C) 2012, 2013 Xiaoqiang Wang <xiaoqiangwang AT gmail DOT com>
+##
+## This program is a free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation, version 3 of the License.
+##
+## You can get a copy of GNU General Public License along this program
+## But you can always get it from http://www.gnu.org/licenses/gpl.txt
+##
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+## GNU General Public License for more details.
+
 from struct import pack, unpack
 
 # zlib compression is used for engine version >=2.0
