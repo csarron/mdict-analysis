@@ -1,6 +1,15 @@
 from struct import pack, unpack
+
+# zlib compression is used for engine version >=2.0
 import zlib
-import lzo
+# LZO compression is used for engine version < 2.0
+try:
+    import lzo
+    HAVE_LZO = True
+except:
+    HAVE_LZO = False
+    print "LZO compression support is not available"
+
 from xml.etree.ElementTree import XMLParser
 
 def _split_key_block(key_block, number_format, number_width):
@@ -27,7 +36,7 @@ def _decode_key_block_info_v1(key_block_info):
     i = 0
     while i < key_block_info_size:
         # 4 bytes unknow
-        unknown = unpack('>I', key_block_info[i:i+4])[0]
+        unpack('>I', key_block_info[i:i+4])[0]
         i += 4
         # 1 byte
         text_head_size = unpack('>B', key_block_info[i:i+1])[0]
@@ -61,7 +70,7 @@ def _decode_key_block_info_v2(key_block_info_compressed):
     i = 0
     while i < key_block_info_size:
         # 8 bytes unknow
-        unknown = unpack('>Q', key_block_info[i:i+8])[0]
+        unpack('>Q', key_block_info[i:i+8])[0]
         i += 8
         # 2 bytes
         text_head_size = unpack('>H', key_block_info[i:i+2])[0]
@@ -207,7 +216,7 @@ def readmdx(fname):
     #      Header Block
     ################################################################################
 
-    # integer : number of bytes of header text
+    # number of bytes of header text
     header_text_size = unpack('>I', f.read(4))[0]
     # text in utf-16 encoding
     header_text = f.read(header_text_size)[:-2]
@@ -248,8 +257,8 @@ def readmdx(fname):
     # number of bytes of key block
     key_block_size = unpack(number_format, f.read(number_width))[0]
 
+    # 4 bytes unknown
     if version >= 2.0:
-        # 4 bytes unknown
         unknown = f.read(4)
         glos['flag2'] = unknown.encode('hex')
 
@@ -277,6 +286,9 @@ def readmdx(fname):
             # extract one single key block into a key list
             key_list += _split_key_block(key_block_compressed[start+8:end], number_format, number_width)
         elif key_block_type == '\x01\x00\x00\x00':
+            if not HAVE_LZO:
+                print "LZO compression is not supported"
+                break
             # 4 bytes as adler32 checksum
             adler32 = unpack('>I', key_block_compressed[start+4:start+8])[0]
             # decompress key block
@@ -306,48 +318,51 @@ def readmdx(fname):
     num_entries = unpack(number_format, f.read(number_width))[0]
     assert(num_entries == glos['num_entries'])
     # number of bytes of record blocks info section
-    num_record_block_info_bytes = unpack(number_format, f.read(number_width))[0]
+    record_block_info_size = unpack(number_format, f.read(number_width))[0]
     # number of byets of actual record blocks
-    total_record_block_bytes = unpack(number_format, f.read(number_width))[0]
+    record_block_size = unpack(number_format, f.read(number_width))[0]
 
     # record block info section
     record_block_info_list = []
     for i in range(num_record_blocks):
         # number of bytes of current record block
-        current_record_block_size = unpack(number_format, f.read(number_width))[0]
+        compressed_size = unpack(number_format, f.read(number_width))[0]
         # number of bytes if current record block decompressed
-        decompressed_block_size = unpack(number_format, f.read(number_width))[0]
-        record_block_info_list += [(current_record_block_size, decompressed_block_size)]
+        decompressed_size = unpack(number_format, f.read(number_width))[0]
+        record_block_info_list += [(compressed_size, decompressed_size)]
 
     # actual record block data
-    record_block = []
-    for current_record_block_size, decompressed_size in record_block_info_list:
-        current_record_block = f.read(current_record_block_size)
+    record_list = []
+    for compressed_size, decompressed_size in record_block_info_list:
+        record_block = f.read(compressed_size)
         # 4 bytes indicates block compression type
-        current_record_block_type = current_record_block[:4]
+        record_block_type = record_block[:4]
         # no compression
-        if current_record_block_type == '\x00\x00\x00\x00':
-            record_block += current_record_block[8:].split('\x00')[:-1]
+        if record_block_type == '\x00\x00\x00\x00':
+            record_list += record_block[8:].split('\x00')[:-1]
         # lzo compression
-        elif current_record_block_type == '\x01\x00\x00\x00':
+        elif record_block_type == '\x01\x00\x00\x00':
+            if not HAVE_LZO:
+                print "LZO compression is not supported"
+                break
             # 4 bytes adler32 checksum
             # decompress
             header = '\xf0' + pack('>I', decompressed_size)
-            current_record_block_text = lzo.decompress(header + current_record_block[8:])
-            record_block += current_record_block_text.split('\x00')[:-1]
+            record_block_text = lzo.decompress(header + record_block[8:])
+            record_list += record_block_text.split('\x00')[:-1]
         # zlib compression
-        elif current_record_block_type == '\x02\x00\x00\x00':
+        elif record_block_type == '\x02\x00\x00\x00':
             # 4 bytes as checksum
-            assert(current_record_block[4:8] == current_record_block[-4:])
+            assert(record_block[4:8] == record_block[-4:])
             # compressed contents
-            current_record_block_text = zlib.decompress(current_record_block[8:])
-            assert(len(current_record_block_text) == decompressed_size)
-            record_block += current_record_block_text.split('\x00')[:-1]
-    glos['record_block'] = record_block
+            record_block_text = zlib.decompress(record_block[8:])
+            assert(len(record_block_text) == decompressed_size)
+            record_list += record_block_text.split('\x00')[:-1]
+    glos['record_block'] = record_list
 
     # merge key_block and record_block
     dict = []
-    for key, record in zip(key_list, record_block):
+    for key, record in zip(key_list, record_list):
         dict += [(key[1], record)]
     glos['dict'] = dict
     f.close()
@@ -359,9 +374,9 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('-x', '--extract', action="store_true",
-                    help='extract mdx to source format and extract files from mdd')
+                        help='extract mdx to source format and extract files from mdd')
     parser.add_argument('-d', '--datafolder', default="data",
-                    help='folder to extract data files from mdd')
+                        help='folder to extract data files from mdd')
     parser.add_argument("filename", help="mdx file name")
     args = parser.parse_args()
 
