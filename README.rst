@@ -25,7 +25,7 @@ Example Program
 ===============
 readmdict.py is an example implementation in Python. This program can read/extract mdx/mdd files.
 
-.. note:: python-lzo is required to read mdx files created with enegine 1.2. Get Windows version from http://www.lfd.uci.edu/~gohlke/pythonlibs/#python-lzo
+**NOTE:** python-lzo is required to read mdx files created with enegine 1.2. Get Windows version from http://www.lfd.uci.edu/~gohlke/pythonlibs/#python-lzo
 
 It can be used as a command line tool. Suppose one has oald8.mdx and oald8.mdd::
 
