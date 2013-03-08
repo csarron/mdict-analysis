@@ -18,6 +18,7 @@
 ## GNU General Public License for more details.
 
 from struct import pack, unpack
+import re
 
 # zlib compression is used for engine version >=2.0
 import zlib
@@ -31,24 +32,31 @@ except:
 
 from xml.etree.ElementTree import XMLParser
 
-def _split_key_block(key_block, number_format, number_width):
+def _split_key_block(key_block, number_format, number_width, encoding):
     key_list = []
     key_start_index = 0
     while key_start_index < len(key_block):
         # the corresponding record's offset in record block
         key_id = unpack(number_format, key_block[key_start_index:key_start_index+number_width])[0]
         # key text ends with '\x00'
-        key_end_index = key_start_index + number_width
-        for a in key_block[key_start_index+number_width:]:
-            key_end_index += 1
-            if a == '\x00':
+        if encoding == 'UTF-16':
+            delimiter = '\x00\x00'
+            width = 2
+        else:
+            delimiter = '\x00'
+            width = 1
+        i = key_start_index + number_width
+        while i < len(key_block):
+            if key_block[i:i+width] == delimiter:
+                key_end_index = i
                 break
-        key_text = key_block[key_start_index+number_width:key_end_index-1]
-        key_start_index = key_end_index
+            i += width
+        key_text = key_block[key_start_index+number_width:key_end_index].decode(encoding).encode('utf-8').strip()
+        key_start_index = key_end_index + width
         key_list += [(key_id, key_text)]
     return key_list
 
-def _decode_key_block_info_v1(key_block_info):
+def _decode_key_block_info_v1(key_block_info, encoding):
     key_block_info_size = len(key_block_info)
     # decode
     key_block_info_list = []
@@ -61,12 +69,18 @@ def _decode_key_block_info_v1(key_block_info):
         text_head_size = unpack('>B', key_block_info[i:i+1])[0]
         i += 1
         # text head
-        i += text_head_size
+        if encoding == 'UTF-16':
+            i += text_head_size * 2
+        else:
+            i += text_head_size
         # 1 byte
         text_tail_size = unpack('>B', key_block_info[i:i+1])[0]
         i += 1
         # text tail
-        i += text_tail_size
+        if encoding == 'UTF-16':
+            i += text_tail_size * 2
+        else:
+            i += text_tail_size
         # 4 bytes of key block compressed size
         key_block_compressed_size = unpack('>I', key_block_info[i:i+4])[0]
         i += 4
@@ -76,7 +90,7 @@ def _decode_key_block_info_v1(key_block_info):
         key_block_info_list += [(key_block_compressed_size, key_block_decompressed_size)]
     return key_block_info_list
 
-def _decode_key_block_info_v2(key_block_info_compressed):
+def _decode_key_block_info_v2(key_block_info_compressed, encoding):
     # \x02\x00\x00\x00
     assert(key_block_info_compressed[:4] == '\x02\x00\x00\x00')
     # 4 bytes as a checksum
@@ -95,21 +109,81 @@ def _decode_key_block_info_v2(key_block_info_compressed):
         text_head_size = unpack('>H', key_block_info[i:i+2])[0]
         i += 2
         # text head
-        i += text_head_size + 1
+        if encoding != 'UTF-16':
+            i += text_head_size + 1
+        else:
+            i += text_head_size * 2 + 2
         # 2 bytes
         text_tail_size = unpack('>H', key_block_info[i:i+2])[0]
         i += 2
         # text tail
-        i += text_tail_size + 1
+        if encoding != 'UTF-16':
+            i += text_tail_size + 1
+        else:
+            i += text_tail_size * 2 + 2
         # 8 bytes of key block compressed size
         key_block_compressed_size = unpack('>Q', key_block_info[i:i+8])[0]
         i += 8
-        # 4 bytes of key block decompressed size
+        # 8 bytes of key block decompressed size
         key_block_decompressed_size = unpack('>Q', key_block_info[i:i+8])[0]
         i += 8
         key_block_info_list += [(key_block_compressed_size, key_block_decompressed_size)]
     return key_block_info_list
 
+
+def _decode_key_block(key_block_compressed, key_block_info_list, number_format, number_width, encoding):
+    key_list = []
+    i = 0
+    for compressed_size, decompressed_size in key_block_info_list:
+        start = i;
+        end = i + compressed_size
+        # 4 bytes : compression type
+        key_block_type = key_block_compressed[start:start+4]
+        if key_block_type == '\x00\x00\x00\x00':
+            # extract one single key block into a key list
+            key_list += _split_key_block(key_block_compressed[start+8:end], number_format, number_width, encoding)
+        elif key_block_type == '\x01\x00\x00\x00':
+            if not HAVE_LZO:
+                print "LZO compression is not supported"
+                break
+            # 4 bytes as adler32 checksum
+            adler32 = unpack('>I', key_block_compressed[start+4:start+8])[0]
+            # decompress key block
+            header = '\xf0' + pack('>I', decompressed_size)
+            key_block = lzo.decompress(header + key_block_compressed[start+8:end])
+            # notice that lzo 1.x may return values negative, better not checking
+            #assert(adler32 == lzo.adler32(key_block))
+            # extract one single key block into a key list
+            key_list += _split_key_block(key_block, number_format, number_width, encoding)
+        elif key_block_type == '\x02\x00\x00\x00':
+            # 4 bytes same as end of block
+            assert(key_block_compressed[start+4:start+8] == key_block_compressed[end-4:end])
+            # decompress key block
+            key_block = zlib.decompress(key_block_compressed[start+number_width:end])
+            # extract one single key block into a key list
+            key_list += _split_key_block(key_block, number_format, number_width, encoding)
+        i += compressed_size
+    return key_list
+
+def _unescape_entities(text):
+    """
+    unescape offending tags < > " &
+    """
+    text = text.replace('&lt;', '<')
+    text = text.replace('&gt;', '>')
+    text = text.replace('&quot;', '"')
+    text = text.replace('&amp;', '&')
+    return text
+
+def _parse_header(header):
+    """
+    extract attributes from <Dict
+    """
+    taglist = re.findall('(\w+)="(.*?)"', header, re.DOTALL)
+    tagdict = {}
+    for key, value in taglist:
+        tagdict[key] = _unescape_entities(value)
+    return tagdict
 
 def readmdd(fname):
     glos = {}
@@ -144,8 +218,8 @@ def readmdd(fname):
     # 8 bytes long long : unkown
     unknown = unpack('>Q', f.read(8))[0]
     glos['num1'] = unknown
-    # 8 bytes long long : number of bytes of unknown block 1
-    unknown_block_1_size = unpack('>Q', f.read(8))[0]
+    # 8 bytes long long : number of bytes of key block info
+    key_block_info_size = unpack('>Q', f.read(8))[0]
     # 8 bytes long long : number of bytes of key block
     key_block_size = unpack('>Q', f.read(8))[0]
 
@@ -153,9 +227,8 @@ def readmdd(fname):
     unknown = f.read(4)
     glos['flag2'] = unknown.encode('hex')
 
-    # read unknown block 1
-    unknown_block_1 = f.read(unknown_block_1_size)
-    glos['unknown_block_1'] = unknown_block_1
+    # read key block info
+    key_block_info = f.read(key_block_info_size)
 
     # read key block
     key_block_compressed = f.read(key_block_size)
@@ -238,15 +311,15 @@ def readmdx(fname):
     # number of bytes of header text
     header_text_size = unpack('>I', f.read(4))[0]
     # text in utf-16 encoding
-    header_text = f.read(header_text_size)[:-2]
-    parser = XMLParser(encoding='utf-16')
-    parser.feed(header_text)
-    header_tag = parser.close()
-    glos['header'] = header_tag.attrib
+    header_text = f.read(header_text_size)[:-2].decode('utf-16').encode('utf-8')
+    header_tag = _parse_header(header_text)
+    glos['header'] = header_tag
+    encoding = header_tag['Encoding']
+    stylesheet = header_tag['StyleSheet']
 
     # before version 2.0, number is 4 bytes integer
     # version 2.0 and above uses 8 bytes
-    version = float(header_tag.attrib['GeneratedByEngineVersion'])
+    version = float(header_tag['GeneratedByEngineVersion'])
     if version < 2.0:
         number_width = 4
         number_format = '>I'
@@ -256,7 +329,6 @@ def readmdx(fname):
 
     # 4 bytes unknown
     glos['flag1'] = f.read(4).encode('hex')
-
     ################################################################################
     #      Key Block
     ################################################################################
@@ -281,49 +353,28 @@ def readmdx(fname):
         unknown = f.read(4)
         glos['flag2'] = unknown.encode('hex')
 
-
     # read key block info, which indicates block's compressed and decompressed size
     key_block_info = f.read(key_block_info_size)
+    key_block_info_list = []
     if version < 2.0:
-        key_block_info_list = _decode_key_block_info_v1(key_block_info)
+        key_block_info_list = _decode_key_block_info_v1(key_block_info, encoding)
     else:
-        key_block_info_list = _decode_key_block_info_v2(key_block_info)
+        try:
+            key_block_info_list = _decode_key_block_info_v2(key_block_info, encoding)
+        except:
+            print "Cannot Decode Key Block Info Section. Try Brutal Force."
 
     # read key block
     key_block_compressed = f.read(key_block_size)
 
     # extract key block
     key_list = []
-
-    i = 0
-    for compressed_size, decompressed_size in key_block_info_list:
-        start = i;
-        end = i + compressed_size
-        # 4 bytes : compression type
-        key_block_type = key_block_compressed[start:start+4]
-        if key_block_type == '\x00\x00\x00\x00':
-            # extract one single key block into a key list
-            key_list += _split_key_block(key_block_compressed[start+8:end], number_format, number_width)
-        elif key_block_type == '\x01\x00\x00\x00':
-            if not HAVE_LZO:
-                print "LZO compression is not supported"
-                break
-            # 4 bytes as adler32 checksum
-            adler32 = unpack('>I', key_block_compressed[start+4:start+8])[0]
-            # decompress key block
-            header = '\xf0' + pack('>I', decompressed_size)
-            key_block = lzo.decompress(header + key_block_compressed[start+8:end])
-            assert(adler32 == lzo.adler32(key_block))
-            # extract one single key block into a key list
-            key_list += _split_key_block(key_block, number_format, number_width)
-        elif key_block_type == '\x02\x00\x00\x00':
-            # 4 bytes same as end of block
-            assert(key_block_compressed[start+4:start+8] == key_block_compressed[end-4:end])
-            # decompress key block
-            key_block = zlib.decompress(key_block_compressed[start+number_width:end])
-            # extract one single key block into a key list
-            key_list += _split_key_block(key_block, number_format, number_width)
-        i += compressed_size
+    if key_block_info_list:
+        key_list = _decode_key_block(key_block_compressed, key_block_info_list, number_format, number_width, encoding)
+    else:
+        for key_block in key_block_compressed.split('\x02\x00\x00\x00')[1:]:
+            key_block_decompressed = zlib.decompress(key_block[4:])
+            key_list += _split_key_block(key_block_decompressed, number_format, number_width, encoding)
     glos['key_block'] =  key_list
 
     ################################################################################
@@ -358,7 +409,7 @@ def readmdx(fname):
         record_block_type = record_block[:4]
         # no compression
         if record_block_type == '\x00\x00\x00\x00':
-            record_list += record_block[8:].split('\x00')[:-1]
+            record_list += [t.encode('utf-8').strip() for t in record_block[8:].decode(encoding).split('\x00')[:-1]]
         # lzo compression
         elif record_block_type == '\x01\x00\x00\x00':
             if not HAVE_LZO:
@@ -368,7 +419,7 @@ def readmdx(fname):
             # decompress
             header = '\xf0' + pack('>I', decompressed_size)
             record_block_text = lzo.decompress(header + record_block[8:])
-            record_list += record_block_text.split('\x00')[:-1]
+            record_list += [t.encode('utf-8').strip() for t in record_block_text.decode(encoding).split('\x00')[:-1]]
         # zlib compression
         elif record_block_type == '\x02\x00\x00\x00':
             # 4 bytes as checksum
@@ -376,13 +427,39 @@ def readmdx(fname):
             # compressed contents
             record_block_text = zlib.decompress(record_block[8:])
             assert(len(record_block_text) == decompressed_size)
-            record_list += record_block_text.split('\x00')[:-1]
+            record_list += [t.encode('utf-8').strip() for t in record_block_text.decode(encoding).split('\x00')[:-1]]
     glos['record_block'] = record_list
+
+    # substitute stylesheet definition
+    if stylesheet:
+        l = stylesheet.split('\n')
+        styles = {}
+        i = 0
+        while i < len(l) - 2:
+            styles[l[i]] = (l[i+1], l[i+2])
+            i += 3
+        for i in range(len(record_list)):
+            txt = record_list[i]
+            txt_list = re.split('`\d+`', txt)
+            txt_tag  = re.findall('`\d+`',txt)
+            txt_styled = txt_list[0]
+            for  j, p in enumerate(txt_list[1:]):
+                style = styles[txt_tag[j][1:-1]]
+                if p and p[-1] == '\n':
+                    txt_styled = txt_styled + style[0] + p.rstrip() + style[1] + '\n'
+                else:
+                    txt_styled = txt_styled + style[0] + p + style[1]
+            record_list[i] = txt_styled
 
     # merge key_block and record_block
     dict = []
-    for key, record in zip(key_list, record_list):
-        dict += [(key[1], record)]
+    if not key_list:
+        for record in record_list:
+            record_lines = record.split('\n')
+            dict += [(re.sub('`\d`', '', record_lines[0]).strip(), '\n'.join(record_lines[1:]))]
+    else:
+        for key, record in zip(key_list, record_list):
+            dict += [(key[1], record)]
     glos['dict'] = dict
     f.close()
 
@@ -407,7 +484,7 @@ if __name__ == '__main__':
         print '========', args.filename, '========'
         print '  Number of Entries :', glos['num_entries']
         for key,value in glos['header'].items():
-            print ' ', key.encode('utf-8'), ':', value.encode('utf-8')
+            print ' ', key, ':', value
     else:
         glos = None
 
@@ -415,10 +492,10 @@ if __name__ == '__main__':
     mdd_filename = ''.join([base, os.path.extsep, 'mdd'])
     if (os.path.exists(mdd_filename)):
         data = readmdd(mdd_filename)
-        print '========', args.filename, '========'
+        print '========', mdd_filename, '========'
         print ' Number of Entries :', data['num_entries']
         for key,value in data['header'].items():
-            print ' ', key.encode('utf-8'), ':', value.encode('utf-8')
+            print ' ', key, ':', value
     else:
         data = None
 
@@ -431,7 +508,14 @@ if __name__ == '__main__':
                 f.write(entry[0])
                 f.write('\r\n')
                 f.write(entry[1])
+                f.write('\r\n')
                 f.write('</>\r\n')
+            f.close()
+        # write out style
+        if glos['header']['StyleSheet']:
+            style_fname = ''.join([base, '_style', os.path.extsep, 'txt'])
+            f = open(style_fname, 'wb')
+            f.write(glos['header']['StyleSheet'])
             f.close()
         # write out optional data files
         if data:
