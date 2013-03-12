@@ -51,7 +51,7 @@ def _split_key_block(key_block, number_format, number_width, encoding):
                 key_end_index = i
                 break
             i += width
-        key_text = key_block[key_start_index+number_width:key_end_index].decode(encoding).encode('utf-8').strip()
+        key_text = key_block[key_start_index+number_width:key_end_index].decode(encoding, errors='ignore').encode('utf-8').strip()
         key_start_index = key_end_index + width
         key_list += [(key_id, key_text)]
     return key_list
@@ -412,7 +412,7 @@ def readmdx(fname, encoding='', substyle=False):
         record_block_type = record_block[:4]
         # no compression
         if record_block_type == '\x00\x00\x00\x00':
-            record_list += [t.encode('utf-8').strip() for t in record_block[8:].decode(encoding).split('\x00')[:-1]]
+            record_list += [t.encode('utf-8').strip() for t in record_block[8:].decode(encoding, errors='ignore').split('\x00')[:-1]]
         # lzo compression
         elif record_block_type == '\x01\x00\x00\x00':
             if not HAVE_LZO:
@@ -422,7 +422,7 @@ def readmdx(fname, encoding='', substyle=False):
             # decompress
             header = '\xf0' + pack('>I', decompressed_size)
             record_block_text = lzo.decompress(header + record_block[8:])
-            record_list += [t.encode('utf-8').strip() for t in record_block_text.decode(encoding).split('\x00')[:-1]]
+            record_list += [t.encode('utf-8').strip() for t in record_block_text.decode(encoding, errors='ignore').split('\x00')[:-1]]
         # zlib compression
         elif record_block_type == '\x02\x00\x00\x00':
             # 4 bytes as checksum
@@ -430,7 +430,7 @@ def readmdx(fname, encoding='', substyle=False):
             # compressed contents
             record_block_text = zlib.decompress(record_block[8:])
             assert(len(record_block_text) == decompressed_size)
-            record_list += [t.encode('utf-8').strip() for t in record_block_text.decode(encoding).split('\x00')[:-1]]
+            record_list += [t.encode('utf-8').strip() for t in record_block_text.decode(encoding, errors='ignore').split('\x00')[:-1]]
     glos['record_block'] = record_list
 
     # substitute stylesheet definition
