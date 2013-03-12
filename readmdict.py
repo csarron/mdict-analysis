@@ -316,6 +316,9 @@ def readmdx(fname, encoding='', substyle=False):
     glos['header'] = header_tag
     if not encoding:
         encoding = header_tag['Encoding']
+        # GB18030 > GBK > GB2312
+        if encoding in ['GBK', 'GB2312']:
+            encoding = 'GB18030'
     else:
         encoding = encoding.upper()
     stylesheet = header_tag['StyleSheet']
