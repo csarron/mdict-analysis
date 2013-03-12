@@ -300,7 +300,7 @@ def readmdd(fname):
 
     return glos
 
-def readmdx(fname):
+def readmdx(fname, encoding='', substyle=False):
     glos = {}
     f = open(fname, 'rb')
 
@@ -314,7 +314,10 @@ def readmdx(fname):
     header_text = f.read(header_text_size)[:-2].decode('utf-16').encode('utf-8')
     header_tag = _parse_header(header_text)
     glos['header'] = header_tag
-    encoding = header_tag['Encoding']
+    if not encoding:
+        encoding = header_tag['Encoding']
+    else:
+        encoding = encoding.upper()
     stylesheet = header_tag['StyleSheet']
 
     # before version 2.0, number is 4 bytes integer
@@ -431,7 +434,7 @@ def readmdx(fname):
     glos['record_block'] = record_list
 
     # substitute stylesheet definition
-    if stylesheet:
+    if substyle and stylesheet:
         l = stylesheet.split('\n')
         styles = {}
         i = 0
@@ -446,7 +449,7 @@ def readmdx(fname):
             for  j, p in enumerate(txt_list[1:]):
                 style = styles[txt_tag[j][1:-1]]
                 if p and p[-1] == '\n':
-                    txt_styled = txt_styled + style[0] + p.rstrip() + style[1] + '\n'
+                    txt_styled = txt_styled + style[0] + p.rstrip() + style[1] + '\r\n'
                 else:
                     txt_styled = txt_styled + style[0] + p + style[1]
             record_list[i] = txt_styled
@@ -471,7 +474,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-x', '--extract', action="store_true",
                         help='extract mdx to source format and extract files from mdd')
+    parser.add_argument('-s', '--substyle', action="store_true",
+                        help='substitute style definition if present')
     parser.add_argument('-d', '--datafolder', default="data",
+                        help='folder to extract data files from mdd')
+    parser.add_argument('-e', '--encoding', default="",
                         help='folder to extract data files from mdd')
     parser.add_argument("filename", help="mdx file name")
     args = parser.parse_args()
@@ -480,7 +487,7 @@ if __name__ == '__main__':
 
     # read mdx file
     if ext == os.path.extsep + 'mdx':
-        glos = readmdx(args.filename)
+        glos = readmdx(args.filename, args.encoding, args.substyle)
         print '========', args.filename, '========'
         print '  Number of Entries :', glos['num_entries']
         for key,value in glos['header'].items():
