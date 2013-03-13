@@ -21,8 +21,11 @@ MDD File Format
 ===============
 .. image:: MDD.svg
 
-Example Program
-===============
+Example Programs
+================
+
+readmdict.py
+------------
 readmdict.py is an example implementation in Python. This program can read/extract mdx/mdd files.
 
 **NOTE:** python-lzo is required to read mdx files created with enegine 1.2. Get Windows version from http://www.lfd.uci.edu/~gohlke/pythonlibs/#python-lzo
@@ -59,3 +62,11 @@ Read MDD file and print the first entry::
 
 ``data`` is a python dict having all info from a MDD file. ``data['data']`` item is a list of 2-item tuples. 
 Of each tuple, the first element is the file name and the second element is the corresponding file content.
+
+xmdict.py
+---------
+readmdict.py loads all dict into memory, which is inappropriate for huge dicts. xmdict.py amends this by writing out as soon decoded.::
+    $ python xmdict.py oald8.mdx
+This will creates *oald8.txt* dictionary file and creates a folder *data* for images, pronunciation audio files.
+
+
