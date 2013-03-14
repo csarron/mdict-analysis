@@ -38,35 +38,32 @@ This will creates *oald8.txt* dictionary file and creates a folder *data* for im
 
 Or as a module::
 
-    In [1]: from readmdict import readmdx, readmdd
+    In [1]: from readmdict import MDX, MDD
 
 Read MDX file and print the first entry::
 
-    In [2]: glos = readmdx('oald8.mdx')
-    
-    In [3]: glos['dict'][0]
-    Out[3]:
+    In [2]: mdx = MDX('oald8.mdx')
+
+    In [3]: items = mdx.items()
+
+    In [4]: items.next()
+    Out[4]:
     ('A',
      '<span style=\'display:block;color:black;\'>.........')
-``glos`` is a python dict having all info from MDX file. ``glos['dict']`` item is a list of 2-item tuples.
+``mdx`` is an objectt having all info from MDX file. ``items`` is an iterator producing 2-item tuples.
 Of each tuple, the first element is the entry text and the second is the explanation.
 
 Read MDD file and print the first entry::
 
-    In [4]: data = readmdd('oald8.mdd')
+    In [5]: mdd = MDD('oald8.mdd')
 
-    In [5]: data['data'][0]
-    Out[5]: 
+    In [6]: items = mdd.items()
+
+    In [7]: items = mdd.next()
+    Out[7]: 
     (u'\\pic\\accordion_concertina.jpg',
     '\xff\xd8\xff\xe0\x00\x10JFIF...........')
 
-``data`` is a python dict having all info from a MDD file. ``data['data']`` item is a list of 2-item tuples. 
+``mdd`` is an object having all info from a MDD file. ``items`` is an iterator producing 2-item tuples. 
 Of each tuple, the first element is the file name and the second element is the corresponding file content.
-
-xmdict.py
----------
-readmdict.py loads all dict into memory, which is inappropriate for huge dicts. xmdict.py amends this by writing out as soon decoded.::
-    $ python xmdict.py oald8.mdx
-This will creates *oald8.txt* dictionary file and creates a folder *data* for images, pronunciation audio files.
-
 
