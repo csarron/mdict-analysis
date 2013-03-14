@@ -36,6 +36,8 @@ It can be used as a command line tool. Suppose one has oald8.mdx and oald8.mdd::
 
 This will creates *oald8.txt* dictionary file and creates a folder *data* for images, pronunciation audio files.
 
+On Windows, one can also double click it and select the file in the popup dialog.
+
 Or as a module::
 
     In [1]: from readmdict import MDX, MDD
