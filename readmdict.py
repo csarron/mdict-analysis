@@ -51,7 +51,7 @@ class MDict(object):
         self._encoding = encoding.upper()
 
         self.header   = self._read_header()
-        self.key_list = self._read_keys()
+        self._key_list = self._read_keys()
 
     def __len__(self):
         return self._num_entries
@@ -63,7 +63,7 @@ class MDict(object):
         """
         Return an iterator over dictionary keys.
         """
-        return (key_value for key_id,key_value in self.key_list)
+        return (key_value for key_id,key_value in self._key_list)
 
     def _read_number(self, f):
         return unpack(self._number_format, f.read(self._number_width))[0]
@@ -320,12 +320,12 @@ class MDD(MDict):
         for compressed_size, decompressed_size in record_block_info_list:
             record_block = zlib.decompress(f.read(compressed_size)[8:])
             assert(len(record_block) == decompressed_size)
-            while i < len(self.key_list):
-                key_start, key_text = self.key_list[i]
+            while i < len(self._key_list):
+                key_start, key_text = self._key_list[i]
                 if key_start - offset >= len(record_block):
                     break
-                if i < len(self.key_list)-1:
-                    key_end = self.key_list[i+1][0]
+                if i < len(self._key_list)-1:
+                    key_end = self._key_list[i+1][0]
                 else:
                     key_end = len(record_block) + offset
                 i += 1
@@ -404,7 +404,7 @@ class MDX(MDict):
                 record_list = [t.encode('utf-8').strip() for t in record_block_text.decode(self._encoding, errors='ignore').split('\x00')[:-1]]
             for record in record_list:
                 i += 1
-                yield self.key_list[i][1], record
+                yield self._key_list[i][1], record
             size_counter += compressed_size
         assert(size_counter == record_block_size)
 
