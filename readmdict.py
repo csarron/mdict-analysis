@@ -56,6 +56,15 @@ class MDict(object):
     def __len__(self):
         return self._num_entries
 
+    def __iter__(self):
+        return self.keys()
+
+    def keys(self):
+        """
+        Return an iterator over dictionary keys.
+        """
+        return (key_value for key_id,key_value in self.key_list)
+
     def _read_number(self, f):
         return unpack(self._number_format, f.read(self._number_width))[0]
 
@@ -139,8 +148,8 @@ class MDict(object):
                 # decompress key block
                 header = '\xf0' + pack('>I', decompressed_size)
                 key_block = lzo.decompress(header + key_block_compressed[start+8:end])
-                # notice that lzo 1.x may return values negative, better not checking
-                #assert(adler32 == lzo.adler32(key_block))
+                # notice that lzo 1.x return signed value
+                assert(adler32 == lzo.adler32(key_block) & 0xffffffff)
                 # extract one single key block into a key list
                 key_list += self._split_key_block(key_block)
             elif key_block_type == '\x02\x00\x00\x00':
@@ -424,7 +433,7 @@ if __name__ == '__main__':
     if ext == os.path.extsep + 'mdx':
         mdx = MDX(args.filename, args.encoding, args.substyle)
         print '========', args.filename, '========'
-        print '  Number of Entries :'
+        print '  Number of Entries :', len(mdx)
         for key,value in mdx.header.items():
             print ' ', key, ':', value
     else:
@@ -435,7 +444,7 @@ if __name__ == '__main__':
     if (os.path.exists(mdd_filename)):
         mdd = MDD(mdd_filename)
         print '========', mdd_filename, '========'
-        print ' Number of Entries :'
+        print '  Number of Entries :', len(mdd)
         for key,value in mdd.header.items():
             print ' ', key, ':', value
     else:
@@ -461,10 +470,11 @@ if __name__ == '__main__':
             f.close()
         # write out optional data files
         if mdd:
-            if not os.path.exists(args.datafolder):
-                os.makedirs(args.datafolder)
+            datafolder = os.path.join(os.path.dirname(args.filename), args.datafolder)
+            if not os.path.exists(datafolder):
+                os.makedirs(datafolder)
             for key,value in mdd.items():
-                fname = ''.join([args.datafolder, key.replace('\\', os.path.sep)]);
+                fname = ''.join([datafolder, key.replace('\\', os.path.sep)]);
                 if not os.path.exists(os.path.dirname(fname)):
                     os.makedirs(os.path.dirname(fname))
                 f = open(fname, 'wb')
