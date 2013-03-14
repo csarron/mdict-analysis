@@ -318,7 +318,12 @@ class MDD(MDict):
         i = 0
         size_counter = 0
         for compressed_size, decompressed_size in record_block_info_list:
-            record_block = zlib.decompress(f.read(compressed_size)[8:])
+            record_block_compressed = f.read(compressed_size)
+            record_block_type = record_block_compressed[:4]
+            if record_block_type == '\x00\x00\x00\x00':
+                record_block = record_block_compressed[8:]
+            elif record_block_type == '\x02\x00\x00\x00':
+                record_block = zlib.decompress(record_block_compressed[8:])
             assert(len(record_block) == decompressed_size)
             while i < len(self._key_list):
                 key_start, key_text = self._key_list[i]
