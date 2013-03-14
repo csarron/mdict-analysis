@@ -424,15 +424,26 @@ if __name__ == '__main__':
                         help='folder to extract data files from mdd')
     parser.add_argument('-e', '--encoding', default="",
                         help='folder to extract data files from mdd')
-    parser.add_argument("filename", help="mdx file name")
+    parser.add_argument("filename", nargs='?', help="mdx file name")
     args = parser.parse_args()
+
+    # use GUI to select file, default to extract
+    if not args.filename:
+        import Tkinter
+        import tkFileDialog
+        root = Tkinter.Tk() ; root.withdraw()
+        args.filename = tkFileDialog.askopenfilename(parent=root)
+        args.extract = True
+
+    if not os.path.exists(args.filename):
+        print "Please specify a valid MDX/MDD file"
 
     base,ext = os.path.splitext(args.filename)
 
     # read mdx file
     if ext == os.path.extsep + 'mdx':
         mdx = MDX(args.filename, args.encoding, args.substyle)
-        print '========', args.filename, '========'
+        print '========', args.filename.encode('utf-8'), '========'
         print '  Number of Entries :', len(mdx)
         for key,value in mdx.header.items():
             print ' ', key, ':', value
@@ -443,7 +454,7 @@ if __name__ == '__main__':
     mdd_filename = ''.join([base, os.path.extsep, 'mdd'])
     if (os.path.exists(mdd_filename)):
         mdd = MDD(mdd_filename)
-        print '========', mdd_filename, '========'
+        print '========', mdd_filename.encode('utf-8'), '========'
         print '  Number of Entries :', len(mdd)
         for key,value in mdd.header.items():
             print ' ', key, ':', value
