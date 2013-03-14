@@ -50,7 +50,7 @@ Read MDX file and print the first entry::
     Out[4]:
     ('A',
      '<span style=\'display:block;color:black;\'>.........')
-``mdx`` is an objectt having all info from MDX file. ``items`` is an iterator producing 2-item tuples.
+``mdx`` is an objectt having all info from a MDX file. ``items`` is an iterator producing 2-item tuples.
 Of each tuple, the first element is the entry text and the second is the explanation.
 
 Read MDD file and print the first entry::
