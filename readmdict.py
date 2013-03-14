@@ -473,12 +473,12 @@ if __name__ == '__main__':
                 f.write('\r\n')
                 f.write('</>\r\n')
             f.close()
-        # write out style
-        if mdx.header.get('StyleSheet'):
-            style_fname = ''.join([base, '_style', os.path.extsep, 'txt'])
-            f = open(style_fname, 'wb')
-            f.write(mdx.header['StyleSheet'])
-            f.close()
+            # write out style
+            if mdx.header.get('StyleSheet'):
+                style_fname = ''.join([base, '_style', os.path.extsep, 'txt'])
+                f = open(style_fname, 'wb')
+                f.write(mdx.header['StyleSheet'])
+                f.close()
         # write out optional data files
         if mdd:
             datafolder = os.path.join(os.path.dirname(args.filename), args.datafolder)
