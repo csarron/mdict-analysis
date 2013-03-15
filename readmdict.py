@@ -337,16 +337,19 @@ class MDD(MDict):
             elif record_block_type == '\x02\x00\x00\x00':
                 record_block = zlib.decompress(record_block_compressed[8:])
             assert(len(record_block) == decompressed_size)
+            # split record block according to the offset info from key block
             while i < len(self._key_list):
-                key_start, key_text = self._key_list[i]
-                if key_start - offset >= len(record_block):
+                record_start, key_text = self._key_list[i]
+                # reach the end of current record block
+                if record_start - offset >= len(record_block):
                     break
+                # record end index
                 if i < len(self._key_list)-1:
-                    key_end = self._key_list[i+1][0]
+                    record_end = self._key_list[i+1][0]
                 else:
-                    key_end = len(record_block) + offset
+                    record_end = len(record_block) + offset
                 i += 1
-                data = record_block[key_start-offset:key_end-offset]
+                data = record_block[record_start-offset:record_end-offset]
                 yield key_text, data
             offset += len(record_block)
             size_counter += compressed_size
