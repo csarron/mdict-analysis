@@ -335,6 +335,9 @@ class MDD(MDict):
                 # notice that lzo 1.x return signed value
                 assert(adler32 == lzo.adler32(record_block) & 0xffffffff)
             elif record_block_type == '\x02\x00\x00\x00':
+                # 4 bytes as checksum
+                assert(record_block_compressed[4:8] == record_block_compressed[-4:])
+                # compressed contents
                 record_block = zlib.decompress(record_block_compressed[8:])
             assert(len(record_block) == decompressed_size)
             # split record block according to the offset info from key block
@@ -368,11 +371,25 @@ class MDX(MDict):
     """
     def __init__(self, fname, encoding='', substyle=False):
         MDict.__init__(self, fname, encoding)
+        self._substyle = substyle
 
     def items(self):
         """Return a generator which in turn produce tuples in the form of (key, value)
         """
         return self._decode_record_block()
+
+    def _substitute_stylesheet(self, txt):
+        # substitute stylesheet definition
+        txt_list = re.split('`\d+`', txt)
+        txt_tag  = re.findall('`\d+`',txt)
+        txt_styled = txt_list[0]
+        for  j, p in enumerate(txt_list[1:]):
+            style = self._stylesheet[txt_tag[j][1:-1]]
+            if p and p[-1] == '\n':
+                txt_styled = txt_styled + style[0] + p.rstrip() + style[1] + '\r\n'
+            else:
+                txt_styled = txt_styled + style[0] + p + style[1]
+        return txt_styled
 
     def _decode_record_block(self):
         f = open(self._fname, 'rb')
@@ -395,39 +412,56 @@ class MDX(MDict):
         assert(size_counter == record_block_info_size)
 
         # actual record block data
-        i = -1
+        offset = 0
+        i = 0
         size_counter = 0
         for compressed_size, decompressed_size in record_block_info_list:
-            record_block = f.read(compressed_size)
+            record_block_compressed = f.read(compressed_size)
             # 4 bytes indicates block compression type
-            record_block_type = record_block[:4]
+            record_block_type = record_block_compressed[:4]
             # no compression
             if record_block_type == '\x00\x00\x00\x00':
-                record_list = [t.encode('utf-8').strip() for t in record_block[8:].decode(self._encoding, errors='ignore').split('\x00')[:-1]]
+                record_block = record_block_compressed[8:]
             # lzo compression
             elif record_block_type == '\x01\x00\x00\x00':
                 if not HAVE_LZO:
                     print "LZO compression is not supported"
                     break
                 # 4 bytes as adler32 checksum
-                adler32 = unpack('>I', record_block[4:8])[0]
+                adler32 = unpack('>I', record_block_compressed[4:8])[0]
                 # decompress
                 header = '\xf0' + pack('>I', decompressed_size)
-                record_block_text = lzo.decompress(header + record_block[8:])
+                record_block = lzo.decompress(header + record_block_compressed[8:])
                 # notice that lzo 1.x return signed value
-                assert(adler32 == lzo.adler32(record_block_text) & 0xffffffff)
-                record_list = [t.encode('utf-8').strip() for t in record_block_text.decode(self._encoding, errors='ignore').split('\x00')[:-1]]
+                assert(adler32 == lzo.adler32(record_block) & 0xffffffff)
             # zlib compression
             elif record_block_type == '\x02\x00\x00\x00':
                 # 4 bytes as checksum
-                assert(record_block[4:8] == record_block[-4:])
+                assert(record_block_compressed[4:8] == record_block_compressed[-4:])
                 # compressed contents
-                record_block_text = zlib.decompress(record_block[8:])
-                assert(len(record_block_text) == decompressed_size)
-                record_list = [t.encode('utf-8').strip() for t in record_block_text.decode(self._encoding, errors='ignore').split('\x00')[:-1]]
-            for record in record_list:
+                record_block = zlib.decompress(record_block_compressed[8:])
+            assert(len(record_block) == decompressed_size)
+            # split record block according to the offset info from key block
+            while i < len(self._key_list):
+                record_start, key_text = self._key_list[i]
+                # reach the end of current record block
+                if record_start - offset >= len(record_block):
+                    break
+                # record end index
+                if i < len(self._key_list)-1:
+                    record_end = self._key_list[i+1][0]
+                else:
+                    record_end = len(record_block) + offset
                 i += 1
-                yield self._key_list[i][1], record
+                record = record_block[record_start-offset:record_end-offset]
+                # convert to utf-8
+                record = record.decode(self._encoding, errors='ignore').strip(u'\x00').encode('utf-8')
+                # substitute styles
+                if self._substyle and self._stylesheet:
+                    record = self._substitute_stylesheet(record)
+
+                yield key_text, record
+            offset += len(record_block)
             size_counter += compressed_size
         assert(size_counter == record_block_size)
 
@@ -500,7 +534,7 @@ if __name__ == '__main__':
             if mdx.header.get('StyleSheet'):
                 style_fname = ''.join([base, '_style', os.path.extsep, 'txt'])
                 f = open(style_fname, 'wb')
-                f.write(mdx.header['StyleSheet'])
+                f.write('\r\n'.join(mdx.header['StyleSheet'].splitlines()))
                 f.close()
         # write out optional data files
         if mdd:
