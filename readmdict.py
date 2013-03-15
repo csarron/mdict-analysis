@@ -498,7 +498,7 @@ if __name__ == '__main__':
     base,ext = os.path.splitext(args.filename)
 
     # read mdx file
-    if ext == os.path.extsep + 'mdx':
+    if ext.lower() == os.path.extsep + 'mdx':
         mdx = MDX(args.filename, args.encoding, args.substyle)
         print '========', args.filename.encode('utf-8'), '========'
         print '  Number of Entries :', len(mdx)
