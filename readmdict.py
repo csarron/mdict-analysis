@@ -327,10 +327,13 @@ class MDD(MDict):
                 if not HAVE_LZO:
                     print "LZO compression is not supported"
                     break
-                # 4 bytes adler32 checksum
+                # 4 bytes as adler32 checksum
+                adler32 = unpack('>I', record_block_compressed[4:8])[0]
                 # decompress
                 header = '\xf0' + pack('>I', decompressed_size)
                 record_block = lzo.decompress(header + record_block_compressed[8:])
+                # notice that lzo 1.x return signed value
+                assert(adler32 == lzo.adler32(record_block) & 0xffffffff)
             elif record_block_type == '\x02\x00\x00\x00':
                 record_block = zlib.decompress(record_block_compressed[8:])
             assert(len(record_block) == decompressed_size)
@@ -403,10 +406,13 @@ class MDX(MDict):
                 if not HAVE_LZO:
                     print "LZO compression is not supported"
                     break
-                # 4 bytes adler32 checksum
+                # 4 bytes as adler32 checksum
+                adler32 = unpack('>I', record_block[4:8])[0]
                 # decompress
                 header = '\xf0' + pack('>I', decompressed_size)
                 record_block_text = lzo.decompress(header + record_block[8:])
+                # notice that lzo 1.x return signed value
+                assert(adler32 == lzo.adler32(record_block_text) & 0xffffffff)
                 record_list = [t.encode('utf-8').strip() for t in record_block_text.decode(self._encoding, errors='ignore').split('\x00')[:-1]]
             # zlib compression
             elif record_block_type == '\x02\x00\x00\x00':
