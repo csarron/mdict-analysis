@@ -208,9 +208,9 @@ class MDict(object):
         #   style_end    # or ''
         # store stylesheet in dict in the form of
         # {'number' : ('style_begin', 'style_end')}
+        self._stylesheet = {}
         if header_tag.get('StyleSheet'):
             lines = header_tag['StyleSheet'].splitlines()
-            self._stylesheet = {}
             for i in range(0, len(lines), 3):
                 self._stylesheet[lines[i]] = (lines[i+1], lines[i+2])
 
