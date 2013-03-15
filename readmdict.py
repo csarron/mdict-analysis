@@ -255,6 +255,7 @@ class MDict(object):
         key_block_info = f.read(key_block_info_size)
         try:
             key_block_info_list = self._decode_key_block_info(key_block_info)
+            assert(num_key_blocks == len(key_block_info_list))
         except:
             key_block_info_list = []
             print "Cannot Decode Key Block Info Section. Try Brutal Force."
@@ -322,6 +323,14 @@ class MDD(MDict):
             record_block_type = record_block_compressed[:4]
             if record_block_type == '\x00\x00\x00\x00':
                 record_block = record_block_compressed[8:]
+            elif record_block_type == '\x01\x00\x00\x00':
+                if not HAVE_LZO:
+                    print "LZO compression is not supported"
+                    break
+                # 4 bytes adler32 checksum
+                # decompress
+                header = '\xf0' + pack('>I', decompressed_size)
+                record_block = lzo.decompress(header + record_block_compressed[8:])
             elif record_block_type == '\x02\x00\x00\x00':
                 record_block = zlib.decompress(record_block_compressed[8:])
             assert(len(record_block) == decompressed_size)
