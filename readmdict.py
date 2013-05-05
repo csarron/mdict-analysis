@@ -550,7 +550,7 @@ if __name__ == '__main__':
             if not os.path.exists(datafolder):
                 os.makedirs(datafolder)
             for key,value in mdd.items():
-                fname = ''.join([datafolder, key.replace('\\', os.path.sep)]);
+                fname = ''.join([datafolder, key.replace('\\', os.path.sep).decode('utf-8')]);
                 if not os.path.exists(os.path.dirname(fname)):
                     os.makedirs(os.path.dirname(fname))
                 f = open(fname, 'wb')
