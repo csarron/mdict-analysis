@@ -53,7 +53,7 @@ Read MDX file and print the first entry::
     ('A',
      '<span style=\'display:block;color:black;\'>.........')
 ``mdx`` is an objectt having all info from a MDX file. ``items`` is an iterator producing 2-item tuples.
-Of each tuple, the first element is the entry text and the second is the explanation.
+Of each tuple, the first element is the entry text and the second is the explanation. Both are UTF-8 encoded strings.
 
 Read MDD file and print the first entry::
 
@@ -68,4 +68,5 @@ Read MDD file and print the first entry::
 
 ``mdd`` is an object having all info from a MDD file. ``items`` is an iterator producing 2-item tuples. 
 Of each tuple, the first element is the file name and the second element is the corresponding file content.
+The file name is encoded in UTF-8. The file content is a plain bytes array.
 
