@@ -28,7 +28,7 @@ readmdict.py
 ------------
 readmdict.py is an example implementation in Python. This program can read/extract mdx/mdd files.
 
-.. note:: python-lzo is required to read mdx files created with enegine 1.2. Get Windows version from http://www.lfd.uci.edu/~gohlke/pythonlibs/#python-lzo
+.. note:: python-lzo is required to read mdx files created with engine 1.2. Get Windows version from http://www.lfd.uci.edu/~gohlke/pythonlibs/#python-lzo
 
 It can be used as a command line tool. Suppose one has oald8.mdx and oald8.mdd::
 
@@ -69,4 +69,3 @@ Read MDD file and print the first entry::
 ``mdd`` is an object having all info from a MDD file. ``items`` is an iterator producing 2-item tuples. 
 Of each tuple, the first element is the file name and the second element is the corresponding file content.
 The file name is encoded in UTF-8. The file content is a plain bytes array.
-
