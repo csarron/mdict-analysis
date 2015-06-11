@@ -14,7 +14,7 @@
    height="1052.3622047"
    id="svg2"
    version="1.1"
-   inkscape:version="0.48.2 r9819"
+   inkscape:version="0.91 r13725"
    sodipodi:docname="MDX.svg">
   <defs
      id="defs4">
@@ -43,13 +43,13 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="2"
-     inkscape:cx="107.82359"
-     inkscape:cy="583.94147"
+     inkscape:cx="187.82359"
+     inkscape:cy="923.94147"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
      inkscape:window-width="1440"
-     inkscape:window-height="852"
+     inkscape:window-height="855"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1" />
@@ -177,9 +177,9 @@
          style="font-size:6px">Integer</tspan></text>
     <g
        id="g5353"
-       transform="translate(-28.254094,52.234019)">
+       transform="translate(102.24591,18.734019)">
       <rect
-         style="fill:none;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
          id="rect5355"
          width="13.428749"
          height="25"
@@ -193,7 +193,7 @@
          height="25"
          width="13.428749"
          id="rect5357"
-         style="fill:none;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+         style="fill:none;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
       <rect
          transform="scale(1,-1)"
          y="-115.36218"
@@ -201,7 +201,7 @@
          height="25"
          width="13.428749"
          id="rect5359"
-         style="fill:none;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+         style="fill:none;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
       <rect
          transform="scale(1,-1)"
          y="-115.36218"
@@ -209,20 +209,8 @@
          height="25"
          width="13.428749"
          id="rect5361"
-         style="fill:none;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+         style="fill:none;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
     </g>
-    <text
-       sodipodi:linespacing="125%"
-       id="text5363"
-       y="158.01042"
-       x="65.513672"
-       style="font-size:14px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-       xml:space="preserve"><tspan
-         style="font-size:6px"
-         y="158.01042"
-         x="65.513672"
-         id="tspan5365"
-         sodipodi:role="line">Unknown</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:6px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
@@ -4237,5 +4225,36 @@
          sodipodi:role="line"
          x="364.29721"
          y="293.36578">Used for validation</tspan></text>
+    <text
+       sodipodi:linespacing="125%"
+       id="text5106"
+       y="119.36218"
+       x="187.5"
+       style="font-style:normal;font-weight:normal;font-size:6px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+       xml:space="preserve"><tspan
+         id="tspan5110"
+         y="119.36218"
+         x="187.5"
+         sodipodi:role="line">   Integer</tspan><tspan
+         y="126.86218"
+         x="187.5"
+         sodipodi:role="line"
+         id="tspan5112">(Little Endian)</tspan></text>
+    <path
+       inkscape:connector-curvature="0"
+       id="path5114"
+       d="m 157.5,106.36218 0,-10.999998 60.5,0 0,12.999998"
+       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    <text
+       sodipodi:linespacing="125%"
+       id="text4395"
+       y="89.862183"
+       x="160.25"
+       style="font-style:normal;font-weight:normal;font-size:6px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+       xml:space="preserve"><tspan
+         y="89.862183"
+         x="160.25"
+         id="tspan4397"
+         sodipodi:role="line">Adler32 Checksum</tspan></text>
   </g>
 </svg>

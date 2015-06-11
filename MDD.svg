@@ -14,7 +14,7 @@
    height="1052.3622047"
    id="svg2"
    version="1.1"
-   inkscape:version="0.48.2 r9819"
+   inkscape:version="0.91 r13725"
    sodipodi:docname="MDD.svg">
   <defs
      id="defs4">
@@ -43,15 +43,15 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="2.8284271"
-     inkscape:cx="596.58129"
-     inkscape:cy="519.66117"
+     inkscape:cx="327.88071"
+     inkscape:cy="943.92524"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
-     inkscape:window-width="1440"
-     inkscape:window-height="852"
-     inkscape:window-x="3"
-     inkscape:window-y="0"
+     inkscape:window-width="1920"
+     inkscape:window-height="1155"
+     inkscape:window-x="90"
+     inkscape:window-y="57"
      inkscape:window-maximized="0" />
   <metadata
      id="metadata7">
@@ -61,7 +61,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -214,15 +214,20 @@
     <text
        sodipodi:linespacing="125%"
        id="text5363"
-       y="123.36218"
-       x="193.5"
-       style="font-size:14px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       y="121.36218"
+       x="185.5"
+       style="font-style:normal;font-weight:normal;font-size:14px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
        xml:space="preserve"><tspan
          style="font-size:6px"
-         y="123.36218"
-         x="193.5"
+         y="121.36218"
+         x="185.5"
          id="tspan5365"
-         sodipodi:role="line">Unknown</tspan></text>
+         sodipodi:role="line">     Integer </tspan><tspan
+         style="font-size:6px"
+         y="128.86218"
+         x="185.5"
+         sodipodi:role="line"
+         id="tspan3736">(Little Endian)</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:6px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
@@ -2628,5 +2633,21 @@
          id="tspan4086"
          x="700.93506"
          y="585.50861">00</tspan></text>
+    <path
+       inkscape:connector-curvature="0"
+       id="path3730"
+       d="m 159.5,106.36218 0,-10.999998 60.5,0 0,12.999998"
+       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    <text
+       sodipodi:linespacing="125%"
+       id="text3732"
+       y="89.862183"
+       x="162.25"
+       style="font-style:normal;font-weight:normal;font-size:6px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+       xml:space="preserve"><tspan
+         y="89.862183"
+         x="162.25"
+         id="tspan3734"
+         sodipodi:role="line">Adler32 Checksum</tspan></text>
   </g>
 </svg>
