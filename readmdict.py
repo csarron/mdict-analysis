@@ -1,21 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-## readmdict.py
-## Octopus MDict Dictionary File (.mdx) and Resource File (.mdd) Analyser
-##
-## Copyright (C) 2012, 2013 Xiaoqiang Wang <xiaoqiangwang AT gmail DOT com>
-##
-## This program is a free software; you can redistribute it and/or modify
-## it under the terms of the GNU General Public License as published by
-## the Free Software Foundation, version 3 of the License.
-##
-## You can get a copy of GNU General Public License along this program
-## But you can always get it from http://www.gnu.org/licenses/gpl.txt
-##
-## This program is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-## GNU General Public License for more details.
+# readmdict.py
+# Octopus MDict Dictionary File (.mdx) and Resource File (.mdd) Analyser
+#
+# Copyright (C) 2012, 2013 Xiaoqiang Wang <xiaoqiangwang AT gmail DOT com>
+#
+# This program is a free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3 of the License.
+#
+# You can get a copy of GNU General Public License along this program
+# But you can always get it from http://www.gnu.org/licenses/gpl.txt
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 
 from struct import pack, unpack
 import re
@@ -26,7 +26,7 @@ import zlib
 try:
     import lzo
     HAVE_LZO = True
-except:
+except ImportError:
     HAVE_LZO = False
     print "LZO compression support is not available"
 
@@ -41,6 +41,7 @@ def _unescape_entities(text):
     text = text.replace('&amp;', '&')
     return text
 
+
 class MDict(object):
     """
     Base class which reads in header and key block.
@@ -50,7 +51,7 @@ class MDict(object):
         self._fname = fname
         self._encoding = encoding.upper()
 
-        self.header   = self._read_header()
+        self.header = self._read_header()
         self._key_list = self._read_keys()
 
     def __len__(self):
@@ -63,7 +64,7 @@ class MDict(object):
         """
         Return an iterator over dictionary keys.
         """
-        return (key_value for key_id,key_value in self._key_list)
+        return (key_value for key_id, key_value in self._key_list)
 
     def _read_number(self, f):
         return unpack(self._number_format, f.read(self._number_width))[0]
@@ -92,12 +93,12 @@ class MDict(object):
         i = 0
         if self._version >= 2:
             byte_format = '>H'
-            byte_width  = 2
-            text_term   = 1
+            byte_width = 2
+            text_term = 1
         else:
             byte_format = '>B'
-            byte_width  = 1
-            text_term   = 0
+            byte_width = 1
+            text_term = 0
 
         while i < len(key_block_info):
             # unknow
@@ -132,7 +133,7 @@ class MDict(object):
         key_list = []
         i = 0
         for compressed_size, decompressed_size in key_block_info_list:
-            start = i;
+            start = i
             end = i + compressed_size
             # 4 bytes : compression type
             key_block_type = key_block_compressed[start:start+4]
@@ -181,12 +182,11 @@ class MDict(object):
                     key_end_index = i
                     break
                 i += width
-            key_text = key_block[key_start_index+self._number_width:key_end_index].decode(self._encoding, errors='ignore').encode('utf-8').strip()
+            key_text = key_block[key_start_index+self._number_width:key_end_index]\
+                .decode(self._encoding, errors='ignore').encode('utf-8').strip()
             key_start_index = key_end_index + width
             key_list += [(key_id, key_text)]
         return key_list
-
-
 
     def _read_header(self):
         f = open(self._fname, 'rb')
@@ -194,8 +194,8 @@ class MDict(object):
         header_bytes_size = unpack('>I', f.read(4))[0]
         header_bytes = f.read(header_bytes_size)
         # 4 bytes of checksum
-        header_checksum = unpack('<I', f.read(4))[0]
-        assert(header_checksum == zlib.adler32(header_bytes) & 0xffffffff)
+        adler32 = unpack('<I', f.read(4))[0]
+        assert(adler32 == zlib.adler32(header_bytes) & 0xffffffff)
         # mark down key block offset
         self._key_block_offset = f.tell()
         f.close()
@@ -240,7 +240,7 @@ class MDict(object):
         # number of key blocks
         num_key_blocks = self._read_number(f)
         # number of entries
-        self._num_entries =  self._read_number(f)
+        self._num_entries = self._read_number(f)
 
         # unkown
         if self._version >= 2.0:
@@ -259,7 +259,7 @@ class MDict(object):
         try:
             key_block_info_list = self._decode_key_block_info(key_block_info)
             assert(num_key_blocks == len(key_block_info_list))
-        except:
+        except AssertionError:
             key_block_info_list = []
             print "Cannot Decode Key Block Info Section. Try Brutal Force."
 
@@ -279,6 +279,7 @@ class MDict(object):
         f.close()
 
         return key_list
+
 
 class MDD(MDict):
     """
@@ -301,11 +302,11 @@ class MDD(MDict):
         f = open(self._fname, 'rb')
         f.seek(self._record_block_offset)
 
-        num_record_blocks       = self._read_number(f)
-        num_entries             = self._read_number(f)
+        num_record_blocks = self._read_number(f)
+        num_entries = self._read_number(f)
         assert(num_entries == self._num_entries)
-        record_block_info_size  = self._read_number(f)
-        record_block_size       = self._read_number(f)
+        record_block_info_size = self._read_number(f)
+        record_block_size = self._read_number(f)
 
         # record block info section
         record_block_info_list = []
@@ -363,6 +364,7 @@ class MDD(MDict):
 
         f.close()
 
+
 class MDX(MDict):
     """
     MDict dictionary file format (*.MDD) reader.
@@ -384,9 +386,9 @@ class MDX(MDict):
     def _substitute_stylesheet(self, txt):
         # substitute stylesheet definition
         txt_list = re.split('`\d+`', txt)
-        txt_tag  = re.findall('`\d+`',txt)
+        txt_tag = re.findall('`\d+`', txt)
         txt_styled = txt_list[0]
-        for  j, p in enumerate(txt_list[1:]):
+        for j, p in enumerate(txt_list[1:]):
             style = self._stylesheet[txt_tag[j][1:-1]]
             if p and p[-1] == '\n':
                 txt_styled = txt_styled + style[0] + p.rstrip() + style[1] + '\r\n'
@@ -398,18 +400,18 @@ class MDX(MDict):
         f = open(self._fname, 'rb')
         f.seek(self._record_block_offset)
 
-        num_record_blocks       = self._read_number(f)
-        num_entries             = self._read_number(f)
+        num_record_blocks = self._read_number(f)
+        num_entries = self._read_number(f)
         assert(num_entries == self._num_entries)
-        record_block_info_size  = self._read_number(f)
-        record_block_size       = self._read_number(f)
+        record_block_info_size = self._read_number(f)
+        record_block_size = self._read_number(f)
 
         # record block info section
         record_block_info_list = []
         size_counter = 0
         for i in range(num_record_blocks):
-            compressed_size     = self._read_number(f)
-            decompressed_size   = self._read_number(f)
+            compressed_size = self._read_number(f)
+            decompressed_size = self._read_number(f)
             record_block_info_list += [(compressed_size, decompressed_size)]
             size_counter += self._number_width * 2
         assert(size_counter == record_block_info_size)
@@ -491,40 +493,41 @@ if __name__ == '__main__':
     if not args.filename:
         import Tkinter
         import tkFileDialog
-        root = Tkinter.Tk() ; root.withdraw()
+        root = Tkinter.Tk()
+        root.withdraw()
         args.filename = tkFileDialog.askopenfilename(parent=root)
         args.extract = True
 
     if not os.path.exists(args.filename):
         print "Please specify a valid MDX/MDD file"
 
-    base,ext = os.path.splitext(args.filename)
+    base, ext = os.path.splitext(args.filename)
 
     # read mdx file
     if ext.lower() == os.path.extsep + 'mdx':
         mdx = MDX(args.filename, args.encoding, args.substyle)
         if type(args.filename) is unicode:
-            fname = args.filename.encode('utf-8')
+            bfname = args.filename.encode('utf-8')
         else:
-            fname = args.filename
-        print '========', fname, '========'
+            bfname = args.filename
+        print '========', bfname, '========'
         print '  Number of Entries :', len(mdx)
-        for key,value in mdx.header.items():
+        for key, value in mdx.header.items():
             print ' ', key, ':', value
     else:
         mdx = None
 
     # find companion mdd file
     mdd_filename = ''.join([base, os.path.extsep, 'mdd'])
-    if (os.path.exists(mdd_filename)):
+    if os.path.exists(mdd_filename):
         mdd = MDD(mdd_filename)
         if type(mdd_filename) is unicode:
-            fname = mdd_filename.encode('utf-8')
+            bfname = mdd_filename.encode('utf-8')
         else:
-            fname = mdd_filename
-        print '========', fname, '========'
+            bfname = mdd_filename
+        print '========', bfname, '========'
         print '  Number of Entries :', len(mdd)
-        for key,value in mdd.header.items():
+        for key, value in mdd.header.items():
             print ' ', key, ':', value
     else:
         mdd = None
@@ -533,29 +536,29 @@ if __name__ == '__main__':
         # write out glos
         if mdx:
             output_fname = ''.join([base, os.path.extsep, 'txt'])
-            f = open(output_fname, 'wb')
-            for key,value in mdx.items():
-                f.write(key)
-                f.write('\r\n')
-                f.write(value)
-                f.write('\r\n')
-                f.write('</>\r\n')
-            f.close()
+            tf = open(output_fname, 'wb')
+            for key, value in mdx.items():
+                tf.write(key)
+                tf.write('\r\n')
+                tf.write(value)
+                tf.write('\r\n')
+                tf.write('</>\r\n')
+            tf.close()
             # write out style
             if mdx.header.get('StyleSheet'):
                 style_fname = ''.join([base, '_style', os.path.extsep, 'txt'])
-                f = open(style_fname, 'wb')
-                f.write('\r\n'.join(mdx.header['StyleSheet'].splitlines()))
-                f.close()
+                sf = open(style_fname, 'wb')
+                sf.write('\r\n'.join(mdx.header['StyleSheet'].splitlines()))
+                sf.close()
         # write out optional data files
         if mdd:
             datafolder = os.path.join(os.path.dirname(args.filename), args.datafolder)
             if not os.path.exists(datafolder):
                 os.makedirs(datafolder)
-            for key,value in mdd.items():
-                fname = ''.join([datafolder, key.replace('\\', os.path.sep).decode('utf-8')]);
-                if not os.path.exists(os.path.dirname(fname)):
-                    os.makedirs(os.path.dirname(fname))
-                f = open(fname, 'wb')
-                f.write(value)
-                f.close()
+            for key, value in mdd.items():
+                dfname = ''.join([datafolder, key.replace('\\', os.path.sep).decode('utf-8')])
+                if not os.path.exists(os.path.dirname(dfname)):
+                    os.makedirs(os.path.dirname(dfname))
+                df = open(dfname, 'wb')
+                df.write(value)
+                df.close()
