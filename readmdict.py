@@ -191,9 +191,17 @@ class MDict(object):
     def _read_header(self):
         f = open(self._fname, 'rb')
         # number of bytes of header text
-        header_text_size = unpack('>I', f.read(4))[0]
-        # text in utf-16 encoding ending with '\x00\x00'
-        header_text = f.read(header_text_size)[:-2].decode('utf-16').encode('utf-8')
+        header_bytes_size = unpack('>I', f.read(4))[0]
+        header_bytes = f.read(header_bytes_size)
+        # 4 bytes of checksum
+        header_checksum = unpack('<I', f.read(4))[0]
+        assert(header_checksum == zlib.adler32(header_bytes) & 0xffffffff)
+        # mark down key block offset
+        self._key_block_offset = f.tell()
+        f.close()
+
+        # header text in utf-16 encoding ending with '\x00\x00'
+        header_text = header_bytes[:-2].decode('utf-16').encode('utf-8')
         header_tag = self._parse_header(header_text)
         if not self._encoding:
             encoding = header_tag['Encoding']
@@ -223,11 +231,6 @@ class MDict(object):
         else:
             self._number_width = 8
             self._number_format = '>Q'
-
-        # 4 bytes unknown
-        f.read(4).encode('hex')
-        self._key_block_offset = f.tell()
-        f.close()
 
         return header_tag
 
