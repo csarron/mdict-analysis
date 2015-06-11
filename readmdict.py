@@ -19,6 +19,7 @@
 
 from struct import pack, unpack
 import re
+from ripemd128 import ripemd128
 
 # zlib compression is used for engine version >=2.0
 import zlib
@@ -41,6 +42,20 @@ def _unescape_entities(text):
     text = text.replace('&amp;', '&')
     return text
 
+def _fast_decrypt(data, key):
+    b = bytearray(data)
+    key = bytearray(key)
+    previous = 0x36
+    for i in range(len(b)):
+        t = (b[i] >> 4 | b[i] << 4) & 0xff
+        t = t ^ previous ^ (i&0xff) ^ key[i%len(key)]
+        previous = b[i]
+        b[i] = t
+    return bytes(b)
+
+def _mdx_decrypt(comp_block):
+    key = ripemd128(comp_block[4:8] + pack(b'<L', 0x3695))
+    return comp_block[0:8] + _fast_decrypt(comp_block[8:], key)
 
 class MDict(object):
     """
@@ -79,15 +94,21 @@ class MDict(object):
             tagdict[key] = _unescape_entities(value)
         return tagdict
 
-    def _decode_key_block_info(self, key_block_info):
-        # zlib compressed for version > 2
+    def _decode_key_block_info(self, key_block_info_compressed):
         if self._version >= 2:
-            # \x02\x00\x00\x00
-            assert(key_block_info[:4] == '\x02\x00\x00\x00')
-            # 4 bytes as a checksum
-            assert(key_block_info[4:8] == key_block_info[-4:])
+            # zlib compression
+            assert(key_block_info_compressed[:4] == '\x02\x00\x00\x00')
+            # decrypt if needed
+            if self._encrypt & 0x02:
+                key_block_info_compressed = _mdx_decrypt(key_block_info_compressed)
             # decompress
-            key_block_info = zlib.decompress(key_block_info[8:])
+            key_block_info = zlib.decompress(key_block_info_compressed[8:])
+            # adler checksum
+            adler32 = unpack('>I', key_block_info_compressed[4:8])[0]
+            assert(adler32 == zlib.adler32(key_block_info) & 0xffffffff)
+        else:
+            # no compression
+            key_block_info = key_block_info_compressed
         # decode
         key_block_info_list = []
         i = 0
@@ -209,6 +230,16 @@ class MDict(object):
             if encoding in ['GBK', 'GB2312']:
                 encoding = 'GB18030'
             self._encoding = encoding
+        # encryption flag
+        #   0x00 - no encryption
+        #   0x01 - encrypt record block
+        #   0x02 - encrypt key info block
+        if header_tag['Encrypted'] == 'No':
+            self._encrypt = 0
+        elif header_tag['Encrypted'] == 'Yes':
+            self._encrypt = 1
+        else:
+            self._encrypt = int(header_tag['Encrypted'])
 
         # stylesheet attribute if present takes form of:
         #   style_number # 1-255
@@ -242,9 +273,9 @@ class MDict(object):
         # number of entries
         self._num_entries = self._read_number(f)
 
-        # unkown
+        # number of bytes of key block info after decompression
         if self._version >= 2.0:
-            self._read_number(f)
+            key_block_info_decomp_size = self._read_number(f)
         # number of bytes of key block info
         key_block_info_size = self._read_number(f)
         # number of bytes of key block
