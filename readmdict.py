@@ -111,6 +111,7 @@ class MDict(object):
             key_block_info = key_block_info_compressed
         # decode
         key_block_info_list = []
+        num_entries = 0
         i = 0
         if self._version >= 2:
             byte_format = '>H'
@@ -122,8 +123,8 @@ class MDict(object):
             text_term = 0
 
         while i < len(key_block_info):
-            # unknow
-            unpack(self._number_format, key_block_info[i:i+self._number_width])[0]
+            # number of entries in current key block
+            num_entries += unpack(self._number_format, key_block_info[i:i+self._number_width])[0]
             i += self._number_width
             # text head size
             text_head_size = unpack(byte_format, key_block_info[i:i+byte_width])[0]
@@ -148,6 +149,9 @@ class MDict(object):
             key_block_decompressed_size = unpack(self._number_format, key_block_info[i:i+self._number_width])[0]
             i += self._number_width
             key_block_info_list += [(key_block_compressed_size, key_block_decompressed_size)]
+
+        assert(num_entries == self._num_entries)
+
         return key_block_info_list
 
     def _decode_key_block(self, key_block_compressed, key_block_info_list):
