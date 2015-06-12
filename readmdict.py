@@ -339,15 +339,8 @@ class MDict(object):
 
         # read key block
         key_block_compressed = f.read(key_block_size)
-
         # extract key block
-        key_list = []
-        if key_block_info_list:
-            key_list = self._decode_key_block(key_block_compressed, key_block_info_list)
-        else:
-            for key_block in key_block_compressed.split('\x02\x00\x00\x00')[1:]:
-                key_block_decompressed = zlib.decompress(key_block[4:])
-                key_list += self._split_key_block(key_block_decompressed)
+        key_list = self._decode_key_block(key_block_compressed, key_block_info_list)
 
         self._record_block_offset = f.tell()
         f.close()
@@ -388,13 +381,7 @@ class MDict(object):
         # read key block
         key_block_compressed = f.read(key_block_size)
         # extract key block
-        key_list = []
-        if key_block_info_list:
-            key_list = self._decode_key_block(key_block_compressed, key_block_info_list)
-        else:
-            for key_block in key_block_compressed.split('\x02\x00\x00\x00')[1:]:
-                key_block_decompressed = zlib.decompress(key_block[4:])
-                key_list += self._split_key_block(key_block_decompressed)
+        key_list = self._decode_key_block(key_block_compressed, key_block_info_list)
 
         self._record_block_offset = f.tell()
         f.close()
