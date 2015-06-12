@@ -3,14 +3,19 @@ An Analysis of MDX/MDD File Format
 
     MDict is a multi-platform open dictionary
     
-which are both questionable. It is not available for every platform, e.g. OS X, Linux. Its  dictionary file format is not open. But this has not hindered its popularity, and many dictionaries have been created for it.
+which are both questionable. It is not available for every platform, e.g. OS X, Linux.
+Its  dictionary file format is not open. But this has not hindered its popularity,
+and many dictionaries have been created for it.
 
-This is an attempt to reveal MDX/MDD file format, so that my favarite dictionaries, created by MDict users, could be used elsewhere.
+This is an attempt to reveal MDX/MDD file format, so that my favorite dictionaries,
+created by MDict users, could be used elsewhere.
 
 
 MDict Files
 ===========
-MDict stores the dictionary definitions, i.e. (key word, explanation) in MDX file and the dictionary reference data, e.g. images, pronunciations, stylesheets in MDD file. Although holding different contents, these two file formats share the same structure.
+MDict stores the dictionary definitions, i.e. (key word, explanation) in MDX file and
+the dictionary reference data, e.g. images, pronunciations, stylesheets in MDD file.
+Although holding different contents, these two file formats share the same structure.
 
 MDX File Format
 ===============
@@ -28,7 +33,8 @@ readmdict.py
 ------------
 readmdict.py is an example implementation in Python. This program can read/extract mdx/mdd files.
 
-.. note:: python-lzo is required to read mdx files created with engine 1.2. Get Windows version from http://www.lfd.uci.edu/~gohlke/pythonlibs/#python-lzo
+.. note:: python-lzo is required to read mdx files created with engine 1.2.
+Get Windows version from http://www.lfd.uci.edu/~gohlke/pythonlibs/#python-lzo
 
 It can be used as a command line tool. Suppose one has oald8.mdx and oald8.mdd::
 
@@ -69,3 +75,8 @@ Read MDD file and print the first entry::
 ``mdd`` is an object having all info from a MDD file. ``items`` is an iterator producing 2-item tuples. 
 Of each tuple, the first element is the file name and the second element is the corresponding file content.
 The file name is encoded in UTF-8. The file content is a plain bytes array.
+
+Acknowledge
+===========
+The file format gets fully disclosed by https://github.com/zhansliu/writemdict.
+The encryption part is taken into this project.
