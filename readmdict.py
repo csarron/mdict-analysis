@@ -3,7 +3,7 @@
 # readmdict.py
 # Octopus MDict Dictionary File (.mdx) and Resource File (.mdd) Analyser
 #
-# Copyright (C) 2012, 2013 Xiaoqiang Wang <xiaoqiangwang AT gmail DOT com>
+# Copyright (C) 2012, 2013, 2015 Xiaoqiang Wang <xiaoqiangwang AT gmail DOT com>
 #
 # This program is a free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,9 +26,8 @@ import zlib
 # LZO compression is used for engine version < 2.0
 try:
     import lzo
-    HAVE_LZO = True
 except ImportError:
-    HAVE_LZO = False
+    lzo = None
     print "LZO compression support is not available"
 
 
@@ -42,20 +41,23 @@ def _unescape_entities(text):
     text = text.replace('&amp;', '&')
     return text
 
+
 def _fast_decrypt(data, key):
     b = bytearray(data)
     key = bytearray(key)
     previous = 0x36
     for i in range(len(b)):
         t = (b[i] >> 4 | b[i] << 4) & 0xff
-        t = t ^ previous ^ (i&0xff) ^ key[i%len(key)]
+        t = t ^ previous ^ (i & 0xff) ^ key[i % len(key)]
         previous = b[i]
         b[i] = t
     return bytes(b)
 
+
 def _mdx_decrypt(comp_block):
     key = ripemd128(comp_block[4:8] + pack(b'<L', 0x3695))
     return comp_block[0:8] + _fast_decrypt(comp_block[8:], key)
+
 
 class MDict(object):
     """
@@ -162,29 +164,25 @@ class MDict(object):
             end = i + compressed_size
             # 4 bytes : compression type
             key_block_type = key_block_compressed[start:start+4]
+            # 4 bytes : adler checksum of decompressed key block
+            adler32 = unpack('>I', key_block_compressed[start+4:start+8])[0]
             if key_block_type == '\x00\x00\x00\x00':
-                # extract one single key block into a key list
-                key_list += self._split_key_block(key_block_compressed[start+8:end])
+                key_block = key_block_compressed[start+8:end]
             elif key_block_type == '\x01\x00\x00\x00':
-                if not HAVE_LZO:
+                if lzo is None:
                     print "LZO compression is not supported"
                     break
-                # 4 bytes as adler32 checksum
-                adler32 = unpack('>I', key_block_compressed[start+4:start+8])[0]
                 # decompress key block
                 header = '\xf0' + pack('>I', decompressed_size)
                 key_block = lzo.decompress(header + key_block_compressed[start+8:end])
-                # notice that lzo 1.x return signed value
-                assert(adler32 == lzo.adler32(key_block) & 0xffffffff)
-                # extract one single key block into a key list
-                key_list += self._split_key_block(key_block)
             elif key_block_type == '\x02\x00\x00\x00':
-                # 4 bytes same as end of block
-                assert(key_block_compressed[start+4:start+8] == key_block_compressed[end-4:end])
                 # decompress key block
-                key_block = zlib.decompress(key_block_compressed[start+self._number_width:end])
-                # extract one single key block into a key list
-                key_list += self._split_key_block(key_block)
+                key_block = zlib.decompress(key_block_compressed[start+8:end])
+            # extract one single key block into a key list
+            key_list += self._split_key_block(key_block)
+            # notice that adler32 returns signed value
+            assert(adler32 == zlib.adler32(key_block) & 0xffffffff)
+
             i += compressed_size
         return key_list
 
@@ -218,7 +216,7 @@ class MDict(object):
         # number of bytes of header text
         header_bytes_size = unpack('>I', f.read(4))[0]
         header_bytes = f.read(header_bytes_size)
-        # 4 bytes of checksum
+        # 4 bytes: adler32 checksum of header, in little endian
         adler32 = unpack('<I', f.read(4))[0]
         assert(adler32 == zlib.adler32(header_bytes) & 0xffffffff)
         # mark down key block offset
@@ -285,9 +283,12 @@ class MDict(object):
         # number of bytes of key block
         key_block_size = self._read_number(f)
 
-        # 4 bytes unknown
+        # 4 bytes: adler checksum of previous 5 numbers
         if self._version >= 2.0:
-            f.read(4)
+            adler32 = unpack('>I', f.read(4))[0]
+            t = pack('>QQQQQ', num_key_blocks, self._num_entries, key_block_info_decomp_size,
+                     key_block_info_size, key_block_size)
+            assert adler32 == (zlib.adler32(t) & 0xffffffff)
 
         # read key block info, which indicates key block's compressed and decompressed size
         key_block_info = f.read(key_block_info_size)
@@ -359,25 +360,26 @@ class MDD(MDict):
         size_counter = 0
         for compressed_size, decompressed_size in record_block_info_list:
             record_block_compressed = f.read(compressed_size)
+            # 4 bytes: compression type
             record_block_type = record_block_compressed[:4]
+            # 4 bytes: adler32 checksum of decompressed record block
+            adler32 = unpack('>I', record_block_compressed[4:8])[0]
             if record_block_type == '\x00\x00\x00\x00':
                 record_block = record_block_compressed[8:]
             elif record_block_type == '\x01\x00\x00\x00':
-                if not HAVE_LZO:
+                if lzo is None:
                     print "LZO compression is not supported"
                     break
-                # 4 bytes as adler32 checksum
-                adler32 = unpack('>I', record_block_compressed[4:8])[0]
                 # decompress
                 header = '\xf0' + pack('>I', decompressed_size)
                 record_block = lzo.decompress(header + record_block_compressed[8:])
-                # notice that lzo 1.x return signed value
-                assert(adler32 == lzo.adler32(record_block) & 0xffffffff)
             elif record_block_type == '\x02\x00\x00\x00':
-                # 4 bytes as checksum
-                assert(record_block_compressed[4:8] == record_block_compressed[-4:])
-                # compressed contents
+                # decompress
                 record_block = zlib.decompress(record_block_compressed[8:])
+
+            # notice that adler32 return signed value
+            assert(adler32 == zlib.adler32(record_block) & 0xffffffff)
+
             assert(len(record_block) == decompressed_size)
             # split record block according to the offset info from key block
             while i < len(self._key_list):
@@ -459,27 +461,27 @@ class MDX(MDict):
             record_block_compressed = f.read(compressed_size)
             # 4 bytes indicates block compression type
             record_block_type = record_block_compressed[:4]
+            # 4 bytes adler checksum of uncompressed content
+            adler32 = unpack('>I', record_block_compressed[4:8])[0]
             # no compression
             if record_block_type == '\x00\x00\x00\x00':
                 record_block = record_block_compressed[8:]
             # lzo compression
             elif record_block_type == '\x01\x00\x00\x00':
-                if not HAVE_LZO:
+                if lzo is None:
                     print "LZO compression is not supported"
                     break
-                # 4 bytes as adler32 checksum
-                adler32 = unpack('>I', record_block_compressed[4:8])[0]
                 # decompress
                 header = '\xf0' + pack('>I', decompressed_size)
                 record_block = lzo.decompress(header + record_block_compressed[8:])
-                # notice that lzo 1.x return signed value
-                assert(adler32 == lzo.adler32(record_block) & 0xffffffff)
             # zlib compression
             elif record_block_type == '\x02\x00\x00\x00':
-                # 4 bytes as checksum
-                assert(record_block_compressed[4:8] == record_block_compressed[-4:])
-                # compressed contents
+                # decompress
                 record_block = zlib.decompress(record_block_compressed[8:])
+
+            # notice that adler32 return signed value
+            assert(adler32 == zlib.adler32(record_block) & 0xffffffff)
+
             assert(len(record_block) == decompressed_size)
             # split record block according to the offset info from key block
             while i < len(self._key_list):
