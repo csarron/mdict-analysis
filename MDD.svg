@@ -43,15 +43,15 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="2.8284271"
-     inkscape:cx="327.88071"
-     inkscape:cy="943.92524"
+     inkscape:cx="347.32615"
+     inkscape:cy="222.67632"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
-     inkscape:window-width="1920"
-     inkscape:window-height="1155"
-     inkscape:window-x="90"
-     inkscape:window-y="57"
+     inkscape:window-width="1440"
+     inkscape:window-height="855"
+     inkscape:window-x="115"
+     inkscape:window-y="0"
      inkscape:window-maximized="0" />
   <metadata
      id="metadata7">
@@ -1686,7 +1686,7 @@
     </g>
     <g
        id="g4391"
-       style="fill:#008000"
+       style="fill:none"
        transform="translate(-6,46)">
       <rect
          transform="scale(1,-1)"
@@ -1695,9 +1695,9 @@
          height="25"
          width="13.428749"
          id="rect3397"
-         style="fill:#008000;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+         style="fill:none;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
       <rect
-         style="fill:#008000;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
          id="rect3399"
          width="13.428749"
          height="25"
@@ -1706,7 +1706,7 @@
          transform="scale(1,-1)" />
       <g
          id="g3401"
-         style="fill:#008000"
+         style="fill:none"
          transform="translate(176.5,80.499997)">
         <rect
            transform="scale(1,-1)"
@@ -1715,7 +1715,7 @@
            height="25"
            width="13.428749"
            id="rect3403"
-           style="fill:#008000;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+           style="fill:none;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
         <rect
            transform="scale(1,-1)"
            y="-381.11218"
@@ -1723,7 +1723,7 @@
            height="25"
            width="13.428749"
            id="rect3405"
-           style="fill:#008000;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+           style="fill:none;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
       </g>
     </g>
     <text
@@ -1834,10 +1834,10 @@
     </g>
     <g
        id="g4402"
-       style="fill:#008000"
+       style="fill:none"
        transform="translate(-14,-84)">
       <rect
-         style="fill:#008000;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
          id="rect4315"
          width="13.428749"
          height="25"
@@ -1851,13 +1851,13 @@
          height="25"
          width="13.428749"
          id="rect4317"
-         style="fill:#008000;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+         style="fill:none;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
       <g
          transform="translate(316.50714,612.24429)"
-         style="fill:#008000"
+         style="fill:none"
          id="g4319">
         <rect
-           style="fill:#008000;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+           style="fill:none;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
            id="rect4321"
            width="13.428749"
            height="25"
@@ -1865,7 +1865,7 @@
            y="-381.11218"
            transform="scale(1,-1)" />
         <rect
-           style="fill:#008000;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+           style="fill:none;stroke:#000000;stroke-width:0.41499999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
            id="rect4323"
            width="13.428749"
            height="25"
@@ -1931,36 +1931,6 @@
        id="path4361"
        d="m 280.87602,836.89442 75.62997,48.16067"
        style="fill:none;stroke:#000000;stroke-width:2.84542608px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
-    <text
-       sodipodi:linespacing="125%"
-       id="text4398"
-       y="516.36578"
-       x="269.29721"
-       style="font-size:6px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#008000;fill-opacity:1;stroke:none;font-family:Sans"
-       xml:space="preserve"><tspan
-         y="516.36578"
-         x="269.29721"
-         id="tspan4400"
-         sodipodi:role="line">Same as the last 4 bytes of </tspan><tspan
-         y="523.86578"
-         x="269.29721"
-         sodipodi:role="line"
-         id="tspan4657">compressed block.</tspan><tspan
-         y="531.36578"
-         x="269.29721"
-         sodipodi:role="line"
-         id="tspan4659">Used for validation</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-size:6px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#008000;fill-opacity:1;stroke:none;font-family:Sans"
-       x="387.79721"
-       y="921.36578"
-       id="text4409"
-       sodipodi:linespacing="125%"><tspan
-         sodipodi:role="line"
-         id="tspan4411"
-         x="387.79721"
-         y="921.36578">Same as the last 4 bytes of compressed block</tspan></text>
     <text
        sodipodi:linespacing="125%"
        id="text4413"
@@ -2649,5 +2619,29 @@
          x="162.25"
          id="tspan3734"
          sodipodi:role="line">Adler32 Checksum</tspan></text>
+    <text
+       sodipodi:linespacing="125%"
+       id="text5764"
+       y="496.29111"
+       x="279.10123"
+       style="font-style:normal;font-weight:normal;font-size:14px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+       xml:space="preserve"><tspan
+         style="font-size:6px"
+         y="496.29111"
+         x="279.10123"
+         sodipodi:role="line"
+         id="tspan5770">Adler32 Checksum</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:14px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+       x="410.74442"
+       y="899.51178"
+       id="text5776"
+       sodipodi:linespacing="125%"><tspan
+         id="tspan5778"
+         sodipodi:role="line"
+         x="410.74442"
+         y="899.51178"
+         style="font-size:6px">Adler32 Checksum</tspan></text>
   </g>
 </svg>
