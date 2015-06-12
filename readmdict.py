@@ -329,12 +329,8 @@ class MDict(object):
 
         # read key block info, which indicates key block's compressed and decompressed size
         key_block_info = f.read(key_block_info_size)
-        try:
-            key_block_info_list = self._decode_key_block_info(key_block_info)
-            assert(num_key_blocks == len(key_block_info_list))
-        except AssertionError:
-            key_block_info_list = []
-            print "Cannot Decode Key Block Info Section. Try Brutal Force."
+        key_block_info_list = self._decode_key_block_info(key_block_info)
+        assert(num_key_blocks == len(key_block_info_list))
 
         # read key block
         key_block_compressed = f.read(key_block_size)
