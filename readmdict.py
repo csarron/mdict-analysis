@@ -18,8 +18,11 @@
 # GNU General Public License for more details.
 
 from struct import pack, unpack
+from io import BytesIO
 import re
+
 from ripemd128 import ripemd128
+from pureSalsa20 import Salsa20
 
 # zlib compression is used for engine version >=2.0
 import zlib
@@ -59,14 +62,31 @@ def _mdx_decrypt(comp_block):
     return comp_block[0:8] + _fast_decrypt(comp_block[8:], key)
 
 
+def _salsa_decrypt(ciphertext, encrypt_key):
+    s20 = Salsa20(key=encrypt_key, IV=b"\x00"*8, rounds=8)
+    return s20.encryptBytes(ciphertext)
+
+
+def _decrypt_regcode_by_deviceid(reg_code, deviceid):
+    deviceid_digest = ripemd128(deviceid)
+    s20 = Salsa20(key=deviceid_digest, IV=b"\x00"*8, rounds=8)
+    encrypt_key = s20.encryptBytes(reg_code)
+    return encrypt_key
+
+
+def _decrypt_regcode_by_email(reg_code, email):
+    raise NotImplementedError('Decrypt regcode by email is not implemented')
+
+
 class MDict(object):
     """
     Base class which reads in header and key block.
     It has no public methods and serves only as code sharing base class.
     """
-    def __init__(self, fname, encoding=''):
+    def __init__(self, fname, encoding='', passcode=None):
         self._fname = fname
         self._encoding = encoding.upper()
+        self._passcode = passcode
 
         self.header = self._read_header()
         self._key_list = self._read_keys()
@@ -270,25 +290,42 @@ class MDict(object):
     def _read_keys(self):
         f = open(self._fname, 'rb')
         f.seek(self._key_block_offset)
-        # number of key blocks
-        num_key_blocks = self._read_number(f)
-        # number of entries
-        self._num_entries = self._read_number(f)
 
+        # the following numbers could be encrypted
+        if self._version >= 2.0:
+            num_bytes = 8 * 5
+        else:
+            num_bytes = 4 * 4
+        block = f.read(num_bytes)
+
+        if self._encrypt & 1:
+            if self._passcode is None:
+                raise RuntimeError('user identification is needed to read encrypted file')
+            regcode, userid = self._passcode
+            if self.header['RegisterBy'] == 'EMail':
+                encrypted_key = _decrypt_regcode_by_email(regcode.decode('hex'), userid)
+            else:
+                encrypted_key = _decrypt_regcode_by_deviceid(regcode.decode('hex'), userid)
+            block = _salsa_decrypt(block, encrypted_key)
+
+        # decode this block
+        sf = BytesIO(block)
+        # number of key blocks
+        num_key_blocks = self._read_number(sf)
+        # number of entries
+        self._num_entries = self._read_number(sf)
         # number of bytes of key block info after decompression
         if self._version >= 2.0:
-            key_block_info_decomp_size = self._read_number(f)
+            key_block_info_decomp_size = self._read_number(sf)
         # number of bytes of key block info
-        key_block_info_size = self._read_number(f)
+        key_block_info_size = self._read_number(sf)
         # number of bytes of key block
-        key_block_size = self._read_number(f)
+        key_block_size = self._read_number(sf)
 
         # 4 bytes: adler checksum of previous 5 numbers
         if self._version >= 2.0:
             adler32 = unpack('>I', f.read(4))[0]
-            t = pack('>QQQQQ', num_key_blocks, self._num_entries, key_block_info_decomp_size,
-                     key_block_info_size, key_block_size)
-            assert adler32 == (zlib.adler32(t) & 0xffffffff)
+            assert adler32 == (zlib.adler32(block) & 0xffffffff)
 
         # read key block info, which indicates key block's compressed and decompressed size
         key_block_info = f.read(key_block_info_size)
@@ -326,8 +363,8 @@ class MDD(MDict):
     >>> for filename,content in mdd.items():
     ... print filename, content[:10]
     """
-    def __init__(self, fname):
-        MDict.__init__(self, fname, encoding='UTF-16')
+    def __init__(self, fname, passcode=None):
+        MDict.__init__(self, fname, encoding='UTF-16', passcode=passcode)
 
     def items(self):
         """Return a generator which in turn produce tuples in the form of (filename, content)
@@ -411,8 +448,8 @@ class MDX(MDict):
     >>> for key,value in mdx.items():
     ... print key, value[:10]
     """
-    def __init__(self, fname, encoding='', substyle=False):
-        MDict.__init__(self, fname, encoding)
+    def __init__(self, fname, encoding='', substyle=False, passcode=None):
+        MDict.__init__(self, fname, encoding, passcode)
         self._substyle = substyle
 
     def items(self):
@@ -514,6 +551,18 @@ if __name__ == '__main__':
     import os
     import os.path
     import argparse
+
+    def passcode(s):
+        try:
+            regcode, userid = s.split(',')
+        except:
+            raise argparse.ArgumentTypeError("Passcode must be regcode,userid")
+        try:
+            regcode.decode('hex')
+        except:
+            raise argparse.ArgumentTypeError("regcode must be a 32 bytes hexadecimal string")
+        return regcode, userid
+
     parser = argparse.ArgumentParser()
     parser.add_argument('-x', '--extract', action="store_true",
                         help='extract mdx to source format and extract files from mdd')
@@ -523,6 +572,8 @@ if __name__ == '__main__':
                         help='folder to extract data files from mdd')
     parser.add_argument('-e', '--encoding', default="",
                         help='folder to extract data files from mdd')
+    parser.add_argument('-p', '--passcode', default=None, type=passcode,
+                        help='register_code,email_or_deviceid')
     parser.add_argument("filename", nargs='?', help="mdx file name")
     args = parser.parse_args()
 
@@ -542,7 +593,7 @@ if __name__ == '__main__':
 
     # read mdx file
     if ext.lower() == os.path.extsep + 'mdx':
-        mdx = MDX(args.filename, args.encoding, args.substyle)
+        mdx = MDX(args.filename, args.encoding, args.substyle, args.passcode)
         if type(args.filename) is unicode:
             bfname = args.filename.encode('utf-8')
         else:
@@ -557,7 +608,7 @@ if __name__ == '__main__':
     # find companion mdd file
     mdd_filename = ''.join([base, os.path.extsep, 'mdd'])
     if os.path.exists(mdd_filename):
-        mdd = MDD(mdd_filename)
+        mdd = MDD(mdd_filename, args.passcode)
         if type(mdd_filename) is unicode:
             bfname = mdd_filename.encode('utf-8')
         else:
