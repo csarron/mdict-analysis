@@ -90,7 +90,7 @@ class MDict(object):
 
         self.header = self._read_header()
         try:
-            self._key_list = self._read_keys()
+            self._key_list = self._read_keys_brutal()
         except:
             print "Try Brutal Force on Encrypted Key Blocks"
             self._key_list = self._read_keys_brutal()
@@ -188,7 +188,6 @@ class MDict(object):
             end = i + compressed_size
             # 4 bytes : compression type
             key_block_type = key_block_compressed[start:start+4]
-            print key_block_type.encode('hex')
             # 4 bytes : adler checksum of decompressed key block
             adler32 = unpack('>I', key_block_compressed[start+4:start+8])[0]
             if key_block_type == '\x00\x00\x00\x00':
@@ -354,8 +353,10 @@ class MDict(object):
         # the following numbers could be encrypted, disregard them!
         if self._version >= 2.0:
             num_bytes = 8 * 5 + 4
+            key_block_type = '\x02\x00\x00\x00'
         else:
             num_bytes = 4 * 4
+            key_block_type = '\x01\x00\x00\x00'
         block = f.read(num_bytes)
 
         # key block info
@@ -363,11 +364,12 @@ class MDict(object):
         # 4 bytes adler32 checksum
         # unknown number of bytes follows until '\x02\x00\x00\x00' which marks the beginning of key block
         key_block_info = f.read(8)
-        assert key_block_info[:4] == '\x02\x00\x00\x00'
+        if self._version >= 2.0:
+            assert key_block_info[:4] == '\x02\x00\x00\x00'
         while True:
             fpos = f.tell()
             t = f.read(1024)
-            index = t.find('\x02\x00\x00\x00')
+            index = t.find(key_block_type)
             if index != -1:
                 key_block_info += t[:index]
                 f.seek(fpos + index)
