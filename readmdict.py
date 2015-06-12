@@ -89,7 +89,11 @@ class MDict(object):
         self._passcode = passcode
 
         self.header = self._read_header()
-        self._key_list = self._read_keys()
+        try:
+            self._key_list = self._read_keys()
+        except:
+            print "Try Brutal Force on Encrypted Key Blocks"
+            self._key_list = self._read_keys_brutal()
 
     def __len__(self):
         return self._num_entries
@@ -172,7 +176,7 @@ class MDict(object):
             i += self._number_width
             key_block_info_list += [(key_block_compressed_size, key_block_decompressed_size)]
 
-        assert(num_entries == self._num_entries)
+        #assert(num_entries == self._num_entries)
 
         return key_block_info_list
 
@@ -184,6 +188,7 @@ class MDict(object):
             end = i + compressed_size
             # 4 bytes : compression type
             key_block_type = key_block_compressed[start:start+4]
+            print key_block_type.encode('hex')
             # 4 bytes : adler checksum of decompressed key block
             adler32 = unpack('>I', key_block_compressed[start+4:start+8])[0]
             if key_block_type == '\x00\x00\x00\x00':
@@ -347,6 +352,54 @@ class MDict(object):
         self._record_block_offset = f.tell()
         f.close()
 
+        return key_list
+
+    def _read_keys_brutal(self):
+        f = open(self._fname, 'rb')
+        f.seek(self._key_block_offset)
+
+        # the following numbers could be encrypted, disregard them!
+        if self._version >= 2.0:
+            num_bytes = 8 * 5 + 4
+        else:
+            num_bytes = 4 * 4
+        block = f.read(num_bytes)
+
+        # key block info
+        # 4 bytes '\x02\x00\x00\x00'
+        # 4 bytes adler32 checksum
+        # unknown number of bytes follows until '\x02\x00\x00\x00' which marks the beginning of key block
+        key_block_info = f.read(8)
+        assert key_block_info[:4] == '\x02\x00\x00\x00'
+        while True:
+            fpos = f.tell()
+            t = f.read(1024)
+            index = t.find('\x02\x00\x00\x00')
+            if index != -1:
+                key_block_info += t[:index]
+                f.seek(fpos + index)
+                break
+            else:
+                key_block_info += t
+
+        key_block_info_list = self._decode_key_block_info(key_block_info)
+        key_block_size = sum(zip(*key_block_info_list)[0])
+
+        # read key block
+        key_block_compressed = f.read(key_block_size)
+        # extract key block
+        key_list = []
+        if key_block_info_list:
+            key_list = self._decode_key_block(key_block_compressed, key_block_info_list)
+        else:
+            for key_block in key_block_compressed.split('\x02\x00\x00\x00')[1:]:
+                key_block_decompressed = zlib.decompress(key_block[4:])
+                key_list += self._split_key_block(key_block_decompressed)
+
+        self._record_block_offset = f.tell()
+        f.close()
+
+        self._num_entries = len(key_list)
         return key_list
 
 
