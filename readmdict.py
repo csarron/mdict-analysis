@@ -90,7 +90,7 @@ class MDict(object):
 
         self.header = self._read_header()
         try:
-            self._key_list = self._read_keys_brutal()
+            self._key_list = self._read_keys()
         except:
             print "Try Brutal Force on Encrypted Key Blocks"
             self._key_list = self._read_keys_brutal()
