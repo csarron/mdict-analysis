@@ -20,6 +20,7 @@
 from struct import pack, unpack
 from io import BytesIO
 import re
+import sys
 
 from ripemd128 import ripemd128
 from pureSalsa20 import Salsa20
@@ -32,6 +33,10 @@ try:
 except ImportError:
     lzo = None
     print("LZO compression support is not available")
+
+# 2x3 compatible
+if sys.hexversion >= 0x03000000:
+    unicode = str
 
 
 def _unescape_entities(text):
@@ -311,10 +316,12 @@ class MDict(object):
             if self._passcode is None:
                 raise RuntimeError('user identification is needed to read encrypted file')
             regcode, userid = self._passcode
-            if self.header['RegisterBy'] == 'EMail':
-                encrypted_key = _decrypt_regcode_by_email(regcode.decode('hex'), userid)
+            if isinstance(userid, unicode):
+                userid = userid.encode('utf8')
+            if self.header[b'RegisterBy'] == b'EMail':
+                encrypted_key = _decrypt_regcode_by_email(regcode, userid)
             else:
-                encrypted_key = _decrypt_regcode_by_deviceid(regcode.decode('hex'), userid)
+                encrypted_key = _decrypt_regcode_by_deviceid(regcode, userid)
             block = _salsa_decrypt(block, encrypted_key)
 
         # decode this block
@@ -595,10 +602,7 @@ if __name__ == '__main__':
     import os
     import os.path
     import argparse
-
-    # 2x3 compatible
-    if sys.hexversion >= 0x03000000:
-        unicode = str
+    import codecs
 
     def passcode(s):
         try:
@@ -606,7 +610,7 @@ if __name__ == '__main__':
         except:
             raise argparse.ArgumentTypeError("Passcode must be regcode,userid")
         try:
-            regcode.decode('hex')
+            regcode = codecs.decode(regcode, 'hex')
         except:
             raise argparse.ArgumentTypeError("regcode must be a 32 bytes hexadecimal string")
         return regcode, userid
