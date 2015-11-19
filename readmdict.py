@@ -75,7 +75,10 @@ def _decrypt_regcode_by_deviceid(reg_code, deviceid):
 
 
 def _decrypt_regcode_by_email(reg_code, email):
-    raise NotImplementedError('Decrypt regcode by email is not implemented')
+    email_digest = ripemd128(email.decode().encode('utf-16-le'))
+    s20 = Salsa20(key=email_digest, IV=b"\x00"*8, rounds=8)
+    encrypt_key = s20.encryptBytes(reg_code)
+    return encrypt_key
 
 
 class MDict(object):
