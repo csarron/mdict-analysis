@@ -681,7 +681,8 @@ if __name__ == '__main__':
                 tf.write(key)
                 tf.write(b'\r\n')
                 tf.write(value)
-                tf.write(b'\r\n')
+                if not value.endswith(b'\n'):
+                    tf.write(b'\r\n')
                 tf.write(b'</>\r\n')
             tf.close()
             # write out style
