@@ -451,9 +451,9 @@ class MDD(MDict):
             record_block_type = record_block_compressed[:4]
             # 4 bytes: adler32 checksum of decompressed record block
             adler32 = unpack('>I', record_block_compressed[4:8])[0]
-            if record_block_type == '\x00\x00\x00\x00':
+            if record_block_type == b'\x00\x00\x00\x00':
                 record_block = record_block_compressed[8:]
-            elif record_block_type == '\x01\x00\x00\x00':
+            elif record_block_type == b'\x01\x00\x00\x00':
                 if lzo is None:
                     print("LZO compression is not supported")
                     break
@@ -697,7 +697,8 @@ if __name__ == '__main__':
             if not os.path.exists(datafolder):
                 os.makedirs(datafolder)
             for key, value in mdd.items():
-                dfname = ''.join([datafolder, key.replace('\\', os.path.sep).decode('utf-8')])
+                fname = key.decode('utf-8').replace('\\', os.path.sep)
+                dfname = datafolder + fname
                 if not os.path.exists(os.path.dirname(dfname)):
                     os.makedirs(os.path.dirname(dfname))
                 df = open(dfname, 'wb')
