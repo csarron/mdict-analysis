@@ -19,12 +19,13 @@ Although holding different contents, these two file formats share the same struc
 
 MDX File Format
 ===============
-.. image:: MDX.svg
+<img src="https://rawgit.com/csarron/mdict-analysis/master/MDX.svg">
 
 
 MDD File Format
 ===============
-.. image:: MDD.svg
+<img src="https://rawgit.com/csarron/mdict-analysis/master/MDD.svg">
+
 
 Example Programs
 ================
