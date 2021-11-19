@@ -631,11 +631,11 @@ if __name__ == '__main__':
 
     # use GUI to select file, default to extract
     if not args.filename:
-        import Tkinter
-        import tkFileDialog
-        root = Tkinter.Tk()
+        import tkinter
+        import tkinter.filedialog
+        root = tkinter.Tk()
         root.withdraw()
-        args.filename = tkFileDialog.askopenfilename(parent=root)
+        args.filename = tkinter.filedialog.askopenfilename(parent=root)
         args.extract = True
 
     if not os.path.exists(args.filename):
